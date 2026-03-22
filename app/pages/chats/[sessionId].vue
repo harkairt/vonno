@@ -134,7 +134,7 @@
       <div class="relative flex-1 overflow-hidden min-h-0">
         <div ref="messagesContainer" class="h-full overflow-y-auto p-4 flex flex-col">
           <div class="flex-1" />
-          <Transition name="fade" mode="out-in" @after-enter="onMessagesEntered">
+          <Transition name="fade" mode="out-in" @enter="onMessagesEnter" @after-enter="onMessagesEntered">
             <!-- Show bubble-shaped skeletons while waiting for real data -->
             <div v-if="!isMessagesReady" key="shimmer" class="space-y-3">
               <div class="flex justify-start" :style="{ animation: 'fade-in 0.5s ease 1.2s both' }">
@@ -714,9 +714,15 @@ watch(isMessagesReady, (ready) => {
   }
 }, { immediate: true })
 
-// Scroll to bottom when the message thread enters the DOM (after shimmer → messages transition).
-// Using @after-enter on the Transition ensures the ChatMessages DOM is fully rendered,
-// which is necessary because mode="out-in" delays the enter phase until the leave animation finishes.
+// Scroll to bottom as soon as messages enter the DOM (while still invisible at opacity: 0).
+// The @enter hook fires before the fade-in CSS transition starts, so the user never sees
+// the top of the thread — the scroll position is already at the bottom when messages become visible.
+function onMessagesEnter() {
+  hasInitiallyScrolled.value = true
+  scrollToBottom(true)
+}
+
+// Safety net: ensure scroll position is correct after the fade-in animation completes.
 function onMessagesEntered() {
   hasInitiallyScrolled.value = true
   scrollToBottom(true)
