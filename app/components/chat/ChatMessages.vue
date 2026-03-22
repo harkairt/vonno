@@ -35,7 +35,7 @@
             :style="isUserMessage(message) ? ownMessageStyle : partnerMessageStyle"
           >
             <!-- Sender Name + Rating Controls -->
-            <div v-if="!props.hideSenderNames" class="flex items-start justify-between gap-2">
+            <div v-if="showSenderName(message)" class="flex items-start justify-between gap-2">
               <div
                 class="text-xs font-medium mb-1.5"
                 :class="{
@@ -186,6 +186,7 @@ interface Props {
   agentName?: string
   welcomeMessageDate?: string
   hideSenderNames?: boolean
+  memberCount?: number
   activeOptionsMessageId?: string
   skipEntranceAnimation?: boolean
 }
@@ -197,6 +198,7 @@ const props = withDefaults(defineProps<Props>(), {
   agentName: undefined,
   welcomeMessageDate: undefined,
   hideSenderNames: false,
+  memberCount: 2,
   activeOptionsMessageId: undefined,
   skipEntranceAnimation: false,
 })
@@ -236,6 +238,13 @@ const messageEnterDelays = computed<Map<string, string>>(() => {
 // Helper to determine if a message is from the current user
 const isUserMessage = (message: ExtendedMessage) => {
   return message.senderUserCode === authStore.user?.email
+}
+
+// Show sender name only for other people's messages in group chats (3+ members)
+const showSenderName = (message: ExtendedMessage) => {
+  if (props.hideSenderNames) return false
+  if (isUserMessage(message)) return false
+  return props.memberCount > 2
 }
 
 // Create welcome message if provided

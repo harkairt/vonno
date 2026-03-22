@@ -161,6 +161,7 @@
               :agent-id="session?.agentId ?? virtualAgentFromSecondMessage?.agentId"
               :agent-name="virtualAgentFromSecondMessage?.agentName"
               :welcome-message-date="virtualAgentFromSecondMessage?.firstMessageDate"
+              :member-count="session?.members?.length ?? 2"
               :active-options-message-id="lastUnansweredOptionsMessageId"
               :skip-entrance-animation="skipEntranceAnimation"
               @option-submitted="handleOptionSubmitted"
