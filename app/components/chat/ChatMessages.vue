@@ -22,7 +22,9 @@
           :class="{
             'justify-end': isUserMessage(message),
             'justify-start': !isUserMessage(message),
+            'message-enter-stagger': messageEnterDelays.has(message.messageID),
           }"
+          :style="messageEnterDelays.has(message.messageID) ? { animationDelay: messageEnterDelays.get(message.messageID) } : undefined"
         >
           <div
             class="max-w-[85%] md:max-w-[75%] sm:max-w-[70%] px-4 py-3"
@@ -130,7 +132,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, type CSSProperties } from 'vue'
+import { computed, onMounted, ref, type CSSProperties } from 'vue'
 import type { AISessionMessageDTO } from '@/types/api/schemas'
 import { parseOptionsPayload } from '@/types/api/schemas'
 import { useAuthStore } from '@/app/stores/auth'
@@ -202,6 +204,32 @@ const emit = defineEmits<{
 }>()
 
 const authStore = useAuthStore()
+
+// Staggered entrance animation for initial load
+const STAGGER_COUNT = 8
+const STAGGER_STEP_MS = 50
+const ANIMATION_DURATION_MS = 300
+
+const isInitialRender = ref(true)
+
+onMounted(() => {
+  setTimeout(() => {
+    isInitialRender.value = false
+  }, STAGGER_COUNT * STAGGER_STEP_MS + ANIMATION_DURATION_MS + 100)
+})
+
+const messageEnterDelays = computed<Map<string, string>>(() => {
+  if (!isInitialRender.value) return new Map()
+  const msgs = allMessages.value
+  const count = msgs.length
+  const from = Math.max(0, count - STAGGER_COUNT)
+  const delays = new Map<string, string>()
+  for (let i = from; i < count; i++) {
+    const fromEnd = count - 1 - i
+    delays.set(msgs[i]!.messageID, `${fromEnd * STAGGER_STEP_MS}ms`)
+  }
+  return delays
+})
 
 // Helper to determine if a message is from the current user
 const isUserMessage = (message: ExtendedMessage) => {
@@ -307,3 +335,20 @@ function formatTime(dateString: string): string {
 }
 
 </script>
+
+<style scoped>
+.message-enter-stagger {
+  animation: message-enter 0.3s ease both;
+}
+
+@keyframes message-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+</style>
