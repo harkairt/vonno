@@ -187,6 +187,7 @@ interface Props {
   welcomeMessageDate?: string
   hideSenderNames?: boolean
   activeOptionsMessageId?: string
+  skipEntranceAnimation?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -197,6 +198,7 @@ const props = withDefaults(defineProps<Props>(), {
   welcomeMessageDate: undefined,
   hideSenderNames: false,
   activeOptionsMessageId: undefined,
+  skipEntranceAnimation: false,
 })
 
 const emit = defineEmits<{
@@ -210,7 +212,7 @@ const STAGGER_COUNT = 8
 const STAGGER_STEP_MS = 50
 const ANIMATION_DURATION_MS = 300
 
-const isInitialRender = ref(true)
+const isInitialRender = ref(!props.skipEntranceAnimation)
 
 onMounted(() => {
   setTimeout(() => {

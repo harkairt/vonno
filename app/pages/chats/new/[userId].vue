@@ -132,6 +132,7 @@ const sessionId = ref(generateUUID())
 // Register navigation callback for when server confirms the new session
 chatStore.onNewSessionConfirmed(sessionId.value, () => {
   chatStore.clearDraft(`new-${userId.value}`)
+  chatStore.skipNextEntranceAnimation = true
   navigateTo(`/chats/${sessionId.value}`, { replace: true })
 })
 

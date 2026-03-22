@@ -162,6 +162,7 @@
               :agent-name="virtualAgentFromSecondMessage?.agentName"
               :welcome-message-date="virtualAgentFromSecondMessage?.firstMessageDate"
               :active-options-message-id="lastUnansweredOptionsMessageId"
+              :skip-entrance-animation="skipEntranceAnimation"
               @option-submitted="handleOptionSubmitted"
             />
           </Transition>
@@ -271,6 +272,10 @@ const sessionId = route.params.sessionId as string
 
 const authStore = useAuthStore()
 const chatStore = useChatStore()
+
+// Consume one-shot flag: skip entrance animation when arriving from /chats/new/*
+const skipEntranceAnimation = chatStore.skipNextEntranceAnimation
+chatStore.skipNextEntranceAnimation = false
 
 // Navigation visibility for mobile detection
 const { isMobile } = useNavigationVisibility()
