@@ -676,9 +676,10 @@ watch(
     const isUserMessage = latestMessage?.senderUserCode === userEmail
 
     if (isUserMessage) {
-      // Capture scroll state BEFORE scrolling - used when AI responds
-      wasAtBottomWhenUserSentMessage.value = isAtBottom.value
-      // User sent a message - always scroll to bottom to show their message
+      // User actively sent a message — they want to follow the conversation
+      // regardless of where they were scrolled. The isAtBottom check when AI
+      // responds still protects against scrolling up after sending.
+      wasAtBottomWhenUserSentMessage.value = true
       scrollToBottom()
     } else {
       // AI responded - only scroll if user was at bottom when they sent message AND still at bottom
