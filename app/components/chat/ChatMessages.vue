@@ -27,7 +27,7 @@
           :style="messageEnterDelays.has(message.messageID) ? { animationDelay: messageEnterDelays.get(message.messageID) } : undefined"
         >
           <div
-            class="max-w-[85%] md:max-w-[75%] sm:max-w-[70%] px-4 py-3"
+            class="max-w-[85%] md:max-w-[75%] sm:max-w-[70%] px-3 py-2"
             :class="{
               'rounded-br-md': isUserMessage(message),
               'rounded-bl-md': !isUserMessage(message),
@@ -68,7 +68,6 @@
               <MarkdownContent
                 v-if="!parseOptionsPayload(message.messageText)"
                 :content="message.messageText"
-                class="text-sm leading-relaxed"
               />
               <OptionsMessage
                 v-else
@@ -80,7 +79,6 @@
             <MarkdownContent
               v-else
               :content="message.messageText"
-              class="text-sm leading-relaxed"
             />
 
             <!-- Message Status and Time -->
