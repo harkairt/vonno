@@ -3,7 +3,6 @@ import { ref, nextTick } from 'vue'
 import { useClientSideUserSearch } from '@/app/composables/useClientSideUserSearch'
 import type { UserDTO } from '@/types/api/schemas'
 
-// eslint-disable-next-line max-lines-per-function
 describe('useClientSideUserSearch', () => {
   const mockUsers = ref<UserDTO[]>([
     {
@@ -13,7 +12,7 @@ describe('useClientSideUserSearch', () => {
       avatarUrl: null,
       isOnline: true,
       role: 'user',
-      isAvailable: true
+      isAvailable: true,
     },
     {
       id: 2,
@@ -22,7 +21,7 @@ describe('useClientSideUserSearch', () => {
       avatarUrl: 'https://example.com/jane.jpg',
       isOnline: false,
       role: 'agent',
-      isAvailable: true
+      isAvailable: true,
     },
     {
       id: 3,
@@ -31,7 +30,7 @@ describe('useClientSideUserSearch', () => {
       avatarUrl: null,
       isOnline: true,
       role: 'user',
-      isAvailable: false
+      isAvailable: false,
     },
     {
       id: 4,
@@ -40,8 +39,8 @@ describe('useClientSideUserSearch', () => {
       avatarUrl: null,
       isOnline: false,
       role: 'agent',
-      isAvailable: true
-    }
+      isAvailable: true,
+    },
   ])
 
   it('returns all users when search query is empty', () => {
@@ -57,8 +56,8 @@ describe('useClientSideUserSearch', () => {
     const { filteredUsers } = useClientSideUserSearch(mockUsers, searchQuery)
 
     expect(filteredUsers.value).toHaveLength(2)
-    expect(filteredUsers.value.map(u => u.name)).toContain('John Doe')
-    expect(filteredUsers.value.map(u => u.name)).toContain('Alice Johnson')
+    expect(filteredUsers.value.map((u) => u.name)).toContain('John Doe')
+    expect(filteredUsers.value.map((u) => u.name)).toContain('Alice Johnson')
   })
 
   it('filters users by email case-insensitively', () => {
@@ -116,7 +115,7 @@ describe('useClientSideUserSearch', () => {
         avatarUrl: null,
         isOnline: false,
         role: 'user',
-        isAvailable: true
+        isAvailable: true,
       },
       {
         id: 2,
@@ -125,8 +124,8 @@ describe('useClientSideUserSearch', () => {
         avatarUrl: null,
         isOnline: false,
         role: 'user',
-        isAvailable: true
-      }
+        isAvailable: true,
+      },
     ])
 
     const searchQuery = ref('valid')

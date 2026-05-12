@@ -30,9 +30,7 @@ describe('requestInterceptor', () => {
   })
 
   it('adds X-Request-ID header using generateUUID', async () => {
-    const { requestInterceptor } = await import(
-      '@/lib/api/interceptors/request'
-    )
+    const { requestInterceptor } = await import('@/lib/api/interceptors/request')
     const config = makeConfig()
 
     const result = requestInterceptor(config)
@@ -41,22 +39,16 @@ describe('requestInterceptor', () => {
   })
 
   it('adds X-Client-Timestamp header with ISO string', async () => {
-    const { requestInterceptor } = await import(
-      '@/lib/api/interceptors/request'
-    )
+    const { requestInterceptor } = await import('@/lib/api/interceptors/request')
     const config = makeConfig()
 
     const result = requestInterceptor(config)
 
-    expect(result.headers['X-Client-Timestamp']).toBe(
-      '2025-06-01T12:00:00.000Z',
-    )
+    expect(result.headers['X-Client-Timestamp']).toBe('2025-06-01T12:00:00.000Z')
   })
 
   it('adds X-Client-User-Agent header when navigator is available', async () => {
-    const { requestInterceptor } = await import(
-      '@/lib/api/interceptors/request'
-    )
+    const { requestInterceptor } = await import('@/lib/api/interceptors/request')
     const config = makeConfig()
 
     const result = requestInterceptor(config)
@@ -70,9 +62,7 @@ describe('requestInterceptor', () => {
     const originalVersion = process.env.npm_package_version
     process.env.npm_package_version = '1.2.3'
 
-    const { requestInterceptor } = await import(
-      '@/lib/api/interceptors/request'
-    )
+    const { requestInterceptor } = await import('@/lib/api/interceptors/request')
     const config = makeConfig()
 
     const result = requestInterceptor(config)
@@ -83,9 +73,7 @@ describe('requestInterceptor', () => {
   })
 
   it('returns the config object', async () => {
-    const { requestInterceptor } = await import(
-      '@/lib/api/interceptors/request'
-    )
+    const { requestInterceptor } = await import('@/lib/api/interceptors/request')
     const config = makeConfig()
 
     const result = requestInterceptor(config)
@@ -96,42 +84,30 @@ describe('requestInterceptor', () => {
 
 describe('requestErrorInterceptor', () => {
   it('rejects with the provided error', async () => {
-    const { requestErrorInterceptor } = await import(
-      '@/lib/api/interceptors/request'
-    )
+    const { requestErrorInterceptor } = await import('@/lib/api/interceptors/request')
     const error = new Error('request config failed')
 
     await expect(requestErrorInterceptor(error)).rejects.toBe(error)
   })
 
   it('rejects with non-Error values', async () => {
-    const { requestErrorInterceptor } = await import(
-      '@/lib/api/interceptors/request'
-    )
+    const { requestErrorInterceptor } = await import('@/lib/api/interceptors/request')
 
-    await expect(requestErrorInterceptor('string error')).rejects.toBe(
-      'string error',
-    )
+    await expect(requestErrorInterceptor('string error')).rejects.toBe('string error')
   })
 })
 
 describe('createAuthRequestInterceptor', () => {
   it('returns a function', async () => {
-    const { createAuthRequestInterceptor } = await import(
-      '@/lib/api/interceptors/request'
-    )
+    const { createAuthRequestInterceptor } = await import('@/lib/api/interceptors/request')
     const interceptor = createAuthRequestInterceptor(() => null)
 
     expect(typeof interceptor).toBe('function')
   })
 
   it('adds Bearer token when getToken returns a value', async () => {
-    const { createAuthRequestInterceptor } = await import(
-      '@/lib/api/interceptors/request'
-    )
-    const interceptor = createAuthRequestInterceptor(
-      () => 'my-access-token-xyz',
-    )
+    const { createAuthRequestInterceptor } = await import('@/lib/api/interceptors/request')
+    const interceptor = createAuthRequestInterceptor(() => 'my-access-token-xyz')
     const config = makeConfig()
 
     const result = interceptor(config)
@@ -140,9 +116,7 @@ describe('createAuthRequestInterceptor', () => {
   })
 
   it('does not add Authorization header when getToken returns null', async () => {
-    const { createAuthRequestInterceptor } = await import(
-      '@/lib/api/interceptors/request'
-    )
+    const { createAuthRequestInterceptor } = await import('@/lib/api/interceptors/request')
     const interceptor = createAuthRequestInterceptor(() => null)
     const config = makeConfig()
 
@@ -152,9 +126,7 @@ describe('createAuthRequestInterceptor', () => {
   })
 
   it('returns the config object', async () => {
-    const { createAuthRequestInterceptor } = await import(
-      '@/lib/api/interceptors/request'
-    )
+    const { createAuthRequestInterceptor } = await import('@/lib/api/interceptors/request')
     const interceptor = createAuthRequestInterceptor(() => 'token')
     const config = makeConfig()
 
@@ -164,7 +136,6 @@ describe('createAuthRequestInterceptor', () => {
   })
 })
 
-// eslint-disable-next-line max-lines-per-function
 describe('rateLimitInterceptor', () => {
   beforeEach(() => {
     vi.useFakeTimers()
@@ -177,9 +148,7 @@ describe('rateLimitInterceptor', () => {
   })
 
   it('allows requests under the limit', async () => {
-    const { rateLimitInterceptor } = await import(
-      '@/lib/api/interceptors/request'
-    )
+    const { rateLimitInterceptor } = await import('@/lib/api/interceptors/request')
     const config = makeConfig({ method: 'get', url: '/api/items' })
 
     const result = rateLimitInterceptor(config)
@@ -188,9 +157,7 @@ describe('rateLimitInterceptor', () => {
   })
 
   it('allows multiple requests under the limit', async () => {
-    const { rateLimitInterceptor } = await import(
-      '@/lib/api/interceptors/request'
-    )
+    const { rateLimitInterceptor } = await import('@/lib/api/interceptors/request')
 
     // Make 99 requests (under default limit of 100)
     for (let i = 0; i < 99; i++) {
@@ -201,9 +168,7 @@ describe('rateLimitInterceptor', () => {
   })
 
   it('rejects when the rate limit is exceeded', async () => {
-    const { rateLimitInterceptor } = await import(
-      '@/lib/api/interceptors/request'
-    )
+    const { rateLimitInterceptor } = await import('@/lib/api/interceptors/request')
 
     // Exhaust the limit (100 requests for same method_url key)
     for (let i = 0; i < 100; i++) {
@@ -221,20 +186,14 @@ describe('rateLimitInterceptor', () => {
   })
 
   it('rejected error message contains wait time', async () => {
-    const { rateLimitInterceptor } = await import(
-      '@/lib/api/interceptors/request'
-    )
+    const { rateLimitInterceptor } = await import('@/lib/api/interceptors/request')
 
     for (let i = 0; i < 100; i++) {
-      void rateLimitInterceptor(
-        makeConfig({ method: 'post', url: '/api/action' }),
-      )
+      void rateLimitInterceptor(makeConfig({ method: 'post', url: '/api/action' }))
     }
 
     try {
-      await rateLimitInterceptor(
-        makeConfig({ method: 'post', url: '/api/action' }),
-      )
+      await rateLimitInterceptor(makeConfig({ method: 'post', url: '/api/action' }))
       expect.unreachable('should have rejected')
     } catch (error: unknown) {
       const appError = error as AppError
@@ -245,9 +204,7 @@ describe('rateLimitInterceptor', () => {
   })
 
   it('uses method_url as the rate limit key', async () => {
-    const { rateLimitInterceptor } = await import(
-      '@/lib/api/interceptors/request'
-    )
+    const { rateLimitInterceptor } = await import('@/lib/api/interceptors/request')
 
     // Exhaust limit for GET /api/a
     for (let i = 0; i < 100; i++) {
@@ -266,22 +223,16 @@ describe('rateLimitInterceptor', () => {
   })
 
   it('resets after the time window passes', async () => {
-    const { rateLimitInterceptor } = await import(
-      '@/lib/api/interceptors/request'
-    )
+    const { rateLimitInterceptor } = await import('@/lib/api/interceptors/request')
 
     // Exhaust the limit
     for (let i = 0; i < 100; i++) {
-      void rateLimitInterceptor(
-        makeConfig({ method: 'get', url: '/api/reset-test' }),
-      )
+      void rateLimitInterceptor(makeConfig({ method: 'get', url: '/api/reset-test' }))
     }
 
     // Should be rejected now
     await expect(
-      rateLimitInterceptor(
-        makeConfig({ method: 'get', url: '/api/reset-test' }),
-      ),
+      rateLimitInterceptor(makeConfig({ method: 'get', url: '/api/reset-test' })),
     ).rejects.toMatchObject({ name: 'AppError' })
 
     // Advance time past the window (default 60000ms)
@@ -296,9 +247,7 @@ describe('rateLimitInterceptor', () => {
 
 describe('cacheInterceptor', () => {
   it('adds no-cache headers for /messages endpoint', async () => {
-    const { cacheInterceptor } = await import(
-      '@/lib/api/interceptors/request'
-    )
+    const { cacheInterceptor } = await import('@/lib/api/interceptors/request')
     const config = makeConfig({ method: 'get', url: '/api/chats/123/messages' })
 
     const result = cacheInterceptor(config)
@@ -308,9 +257,7 @@ describe('cacheInterceptor', () => {
   })
 
   it('adds no-cache headers for /sessions endpoint', async () => {
-    const { cacheInterceptor } = await import(
-      '@/lib/api/interceptors/request'
-    )
+    const { cacheInterceptor } = await import('@/lib/api/interceptors/request')
     const config = makeConfig({ method: 'get', url: '/api/sessions' })
 
     const result = cacheInterceptor(config)
@@ -320,9 +267,7 @@ describe('cacheInterceptor', () => {
   })
 
   it('adds no-cache headers for /unread endpoint', async () => {
-    const { cacheInterceptor } = await import(
-      '@/lib/api/interceptors/request'
-    )
+    const { cacheInterceptor } = await import('@/lib/api/interceptors/request')
     const config = makeConfig({
       method: 'get',
       url: '/api/chats/unread/count',
@@ -335,9 +280,7 @@ describe('cacheInterceptor', () => {
   })
 
   it('adds max-age for static/non-dynamic GET endpoints', async () => {
-    const { cacheInterceptor } = await import(
-      '@/lib/api/interceptors/request'
-    )
+    const { cacheInterceptor } = await import('@/lib/api/interceptors/request')
     const config = makeConfig({ method: 'get', url: '/api/config' })
 
     const result = cacheInterceptor(config)
@@ -347,9 +290,7 @@ describe('cacheInterceptor', () => {
   })
 
   it('does not add cache headers for non-GET requests', async () => {
-    const { cacheInterceptor } = await import(
-      '@/lib/api/interceptors/request'
-    )
+    const { cacheInterceptor } = await import('@/lib/api/interceptors/request')
     const config = makeConfig({
       method: 'post',
       url: '/api/sessions',
@@ -362,9 +303,7 @@ describe('cacheInterceptor', () => {
   })
 
   it('handles uppercase method', async () => {
-    const { cacheInterceptor } = await import(
-      '@/lib/api/interceptors/request'
-    )
+    const { cacheInterceptor } = await import('@/lib/api/interceptors/request')
     const config = makeConfig({ method: 'GET', url: '/api/config' })
 
     const result = cacheInterceptor(config)
@@ -373,9 +312,7 @@ describe('cacheInterceptor', () => {
   })
 
   it('handles undefined url gracefully', async () => {
-    const { cacheInterceptor } = await import(
-      '@/lib/api/interceptors/request'
-    )
+    const { cacheInterceptor } = await import('@/lib/api/interceptors/request')
     const config = makeConfig({ method: 'get', url: undefined })
 
     const result = cacheInterceptor(config)
@@ -385,9 +322,7 @@ describe('cacheInterceptor', () => {
   })
 
   it('returns the config object', async () => {
-    const { cacheInterceptor } = await import(
-      '@/lib/api/interceptors/request'
-    )
+    const { cacheInterceptor } = await import('@/lib/api/interceptors/request')
     const config = makeConfig()
 
     const result = cacheInterceptor(config)
@@ -398,9 +333,7 @@ describe('cacheInterceptor', () => {
 
 describe('transformRequestInterceptor', () => {
   it('removes Content-Type header for FormData requests', async () => {
-    const { transformRequestInterceptor } = await import(
-      '@/lib/api/interceptors/request'
-    )
+    const { transformRequestInterceptor } = await import('@/lib/api/interceptors/request')
     const headers = new AxiosHeaders()
     headers.set('Content-Type', 'application/json')
     const config = makeConfig({
@@ -414,9 +347,7 @@ describe('transformRequestInterceptor', () => {
   })
 
   it('returns config early for FormData without further processing', async () => {
-    const { transformRequestInterceptor } = await import(
-      '@/lib/api/interceptors/request'
-    )
+    const { transformRequestInterceptor } = await import('@/lib/api/interceptors/request')
     const config = makeConfig({
       data: new FormData(),
       url: '/api/login',
@@ -428,9 +359,7 @@ describe('transformRequestInterceptor', () => {
   })
 
   it('passes through non-FormData requests unchanged', async () => {
-    const { transformRequestInterceptor } = await import(
-      '@/lib/api/interceptors/request'
-    )
+    const { transformRequestInterceptor } = await import('@/lib/api/interceptors/request')
     const config = makeConfig({
       data: { username: 'test' },
       url: '/api/data',
@@ -443,9 +372,7 @@ describe('transformRequestInterceptor', () => {
   })
 
   it('handles requests with no data', async () => {
-    const { transformRequestInterceptor } = await import(
-      '@/lib/api/interceptors/request'
-    )
+    const { transformRequestInterceptor } = await import('@/lib/api/interceptors/request')
     const config = makeConfig()
 
     const result = transformRequestInterceptor(config)
@@ -456,9 +383,7 @@ describe('transformRequestInterceptor', () => {
 
 describe('debugInterceptor', () => {
   it('returns the config unchanged', async () => {
-    const { debugInterceptor } = await import(
-      '@/lib/api/interceptors/request'
-    )
+    const { debugInterceptor } = await import('@/lib/api/interceptors/request')
     const config = makeConfig({
       method: 'post',
       url: '/api/debug-test',

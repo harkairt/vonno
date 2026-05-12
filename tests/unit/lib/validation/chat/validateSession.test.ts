@@ -17,7 +17,6 @@ function validSession(overrides: Record<string, unknown> = {}) {
   }
 }
 
-// eslint-disable-next-line max-lines-per-function
 describe('validateSession', () => {
   describe('valid input', () => {
     it('returns ok for a valid session object', () => {
@@ -200,10 +199,12 @@ describe('validateSession', () => {
     })
 
     it('rejects updatedAt earlier than createdAt', () => {
-      const result = validateSession(validSession({
-        createdAt: '2024-06-01T00:00:00Z',
-        updatedAt: '2024-01-01T00:00:00Z',
-      }))
+      const result = validateSession(
+        validSession({
+          createdAt: '2024-06-01T00:00:00Z',
+          updatedAt: '2024-01-01T00:00:00Z',
+        }),
+      )
 
       expect(result.isErr()).toBe(true)
       const error = result._unsafeUnwrapErr()

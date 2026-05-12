@@ -64,5 +64,16 @@ export default withNuxt(
       'sonarjs/slow-regex': 'warn',
     }
   },
+  {
+    files: ['tests/**/*.ts'],
+    rules: {
+      'max-lines-per-function': 'off',
+      'complexity': 'off',
+      'max-depth': 'off',
+      'sonarjs/cognitive-complexity': 'off',
+      'sonarjs/no-identical-functions': 'off',
+      '@typescript-eslint/no-dynamic-delete': 'off',
+    },
+  },
   eslintConfigPrettier,
 )

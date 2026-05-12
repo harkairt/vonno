@@ -230,7 +230,9 @@ describe('getUserFriendlyMessage', () => {
 
   it('returns network error message', () => {
     const error = new AppError(ErrorCode.NETWORK_ERROR, 'Disconnected')
-    expect(getUserFriendlyMessage(error)).toBe('Network error. Please check your connection and try again.')
+    expect(getUserFriendlyMessage(error)).toBe(
+      'Network error. Please check your connection and try again.',
+    )
   })
 
   it('returns timeout message', () => {
@@ -267,7 +269,9 @@ describe('getTechnicalMessage', () => {
 
   it('includes details when present', () => {
     const error = new AppError(ErrorCode.SERVER_ERROR, 'Failed', 500, { key: 'value' })
-    expect(getTechnicalMessage(error)).toBe('[SERVER_ERROR] Failed (HTTP 500) - Details: {"key":"value"}')
+    expect(getTechnicalMessage(error)).toBe(
+      '[SERVER_ERROR] Failed (HTTP 500) - Details: {"key":"value"}',
+    )
   })
 
   it('omits status code and details when not present', () => {
@@ -297,9 +301,7 @@ describe('formatValidationErrors', () => {
   })
 
   it('handles single error per field', () => {
-    const error = new ValidationError('Invalid', [
-      { field: 'age', message: 'must be positive' },
-    ])
+    const error = new ValidationError('Invalid', [{ field: 'age', message: 'must be positive' }])
     expect(formatValidationErrors(error)).toEqual({ age: ['must be positive'] })
   })
 })
@@ -408,10 +410,14 @@ describe('logError', () => {
   it('logs error to console', () => {
     const error = new AppError(ErrorCode.SERVER_ERROR, 'Server error', 500)
     logError(error)
-    expect(console.error).toHaveBeenCalledWith('Application Error:', expect.objectContaining({
-      code: ErrorCode.SERVER_ERROR,
-      message: 'Server error',
-    }))
+    // eslint-disable-next-line no-console
+    expect(console.error).toHaveBeenCalledWith(
+      'Application Error:',
+      expect.objectContaining({
+        code: ErrorCode.SERVER_ERROR,
+        message: 'Server error',
+      }),
+    )
   })
 
   it('calls reportToSentry', () => {
@@ -435,11 +441,14 @@ describe('logValidationError', () => {
   it('includes validation errors in context', () => {
     const error = new ValidationError('Invalid', [{ field: 'email', message: 'required' }])
     logValidationError(error, { extra: 'data' })
-    expect(reportToSentry).toHaveBeenCalledWith(error, expect.objectContaining({
-      extra: 'data',
-      validationErrors: [{ field: 'email', message: 'required' }],
-      fieldsWithErrors: ['email'],
-    }))
+    expect(reportToSentry).toHaveBeenCalledWith(
+      error,
+      expect.objectContaining({
+        extra: 'data',
+        validationErrors: [{ field: 'email', message: 'required' }],
+        fieldsWithErrors: ['email'],
+      }),
+    )
   })
 })
 
@@ -447,7 +456,6 @@ describe('logValidationError', () => {
 // ERROR TRACKER
 // ---------------------------------------------------------------------------
 
-// eslint-disable-next-line max-lines-per-function
 describe('ErrorTracker', () => {
   let tracker: ErrorTracker
 
@@ -664,9 +672,12 @@ describe('handleBoundaryError', () => {
   it('logs the error via logError', () => {
     const error = new AppError(ErrorCode.SERVER_ERROR, 'Error', 500)
     handleBoundaryError(error, { componentStack: 'at Comp' })
-    expect(reportToSentry).toHaveBeenCalledWith(error, expect.objectContaining({
-      componentStack: 'at Comp',
-    }))
+    expect(reportToSentry).toHaveBeenCalledWith(
+      error,
+      expect.objectContaining({
+        componentStack: 'at Comp',
+      }),
+    )
   })
 })
 
