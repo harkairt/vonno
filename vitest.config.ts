@@ -43,15 +43,15 @@ export default defineConfig({
       reporter: ['text', 'json', 'html'],
       include: [
         'lib/**/*.{js,ts}',
-        'stores/**/*.{js,ts}',
-        'composables/**/*.{js,ts}',
-        'utils/**/*.{js,ts}',
+        'app/stores/**/*.{js,ts}',
+        'app/composables/**/*.{js,ts}',
+        'app/utils/**/*.{js,ts}',
         'types/**/*.{ts}'
       ],
       exclude: [
         'lib/**/__tests__/**',
-        'stores/**/__tests__/**',
-        'composables/**/__tests__/**',
+        'app/stores/**/__tests__/**',
+        'app/composables/**/__tests__/**',
         'types/**/__tests__/**',
         'tests/**',
         '**/*.d.ts',
@@ -59,13 +59,13 @@ export default defineConfig({
       ],
       thresholds: {
         global: {
-          // Ratcheted from baseline run (2026-03-28): statements 35%, branches 68%, functions 44%, lines 35%.
+          // Ratcheted (2026-05-12): stmts 43.2%, branches 78%, fns 54.2%, lines 43.2%.
+          // Coverage includes app/stores, app/composables, app/utils, lib/.
           // Set to actual - 2% to allow refactoring headroom.
-          // Update after each batch of new tests.
-          branches: 66,
-          functions: 42,
-          lines: 33,
-          statements: 33
+          branches: 76,
+          functions: 52,
+          lines: 41,
+          statements: 41
         }
       }
     },
@@ -75,9 +75,6 @@ export default defineConfig({
 
     // Hook timeout
     hookTimeout: 10000,
-
-    // Enable threading
-    threads: true,
 
     // Enable test isolation
     isolate: true,

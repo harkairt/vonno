@@ -3,6 +3,7 @@ import { ref, nextTick } from 'vue'
 import { useClientSideUserSearch } from '@/app/composables/useClientSideUserSearch'
 import type { UserDTO } from '@/types/api/schemas'
 
+// eslint-disable-next-line max-lines-per-function
 describe('useClientSideUserSearch', () => {
   const mockUsers = ref<UserDTO[]>([
     {
@@ -55,8 +56,9 @@ describe('useClientSideUserSearch', () => {
     const searchQuery = ref('JOHN')
     const { filteredUsers } = useClientSideUserSearch(mockUsers, searchQuery)
 
-    expect(filteredUsers.value).toHaveLength(1)
-    expect(filteredUsers.value[0].name).toBe('John Doe')
+    expect(filteredUsers.value).toHaveLength(2)
+    expect(filteredUsers.value.map(u => u.name)).toContain('John Doe')
+    expect(filteredUsers.value.map(u => u.name)).toContain('Alice Johnson')
   })
 
   it('filters users by email case-insensitively', () => {

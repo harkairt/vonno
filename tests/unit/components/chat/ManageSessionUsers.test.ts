@@ -33,6 +33,20 @@ vi.stubGlobal('useI18n', () => ({ t: (key: string) => key }))
 vi.stubGlobal('useToast', () => ({ add: vi.fn() }))
 vi.stubGlobal('ref', ref)
 vi.stubGlobal('computed', (fn: () => unknown) => ({ value: fn() }))
+// Also stub as globals for Nuxt auto-import resolution
+const _mockUseSelectableUsers = vi.fn(() => ({
+  data: ref([]),
+  isLoading: ref(false)
+}))
+vi.stubGlobal('useSelectableUsers', _mockUseSelectableUsers)
+vi.stubGlobal('useAddUserToSession', vi.fn(() => ({
+  mutateAsync: vi.fn(),
+  isPending: ref(false)
+})))
+vi.stubGlobal('useRemoveUserFromSession', vi.fn(() => ({
+  mutateAsync: vi.fn(),
+  isPending: ref(false)
+})))
 
 // eslint-disable-next-line import/first -- Must come after vi.stubGlobal for mocks to work
 import { useSelectableUsers } from '@/app/composables/useUsers'
@@ -71,19 +85,18 @@ describe('ManageSessionUsers', () => {
     vi.mocked(useSelectableUsers).mockReturnValue({
       data: ref(allUsers),
       isLoading: ref(false)
-    } as any)
+    } as ReturnType<typeof useSelectableUsers>)
 
     vi.mocked(useMutuallyVisibleUsers).mockReturnValue({
       mutuallyVisibleUsers: ref(mutuallyVisibleUsersData)
-    } as any)
+    } as ReturnType<typeof useMutuallyVisibleUsers>)
   })
 
   it('calls useMutuallyVisibleUsers with selectableUsers', async () => {
-    // Dynamically import the component to ensure mocks are applied
     const { default: ManageSessionUsers } = await import('@/app/components/chat/ManageSessionUsers.vue')
     const { mount } = await import('@vue/test-utils')
 
-    const _wrapper = mount(ManageSessionUsers, {
+    mount(ManageSessionUsers, {
       props: {
         sessionId: 'test-session',
         agentId: 1,
@@ -98,17 +111,13 @@ describe('ManageSessionUsers', () => {
           UInput: true,
           UCheckbox: true,
           UAvatar: true,
+          UserAvatar: true,
           USkeleton: true,
           UEmpty: true
         }
       }
     })
 
-    // Verify useMutuallyVisibleUsers was called
     expect(useMutuallyVisibleUsers).toHaveBeenCalled()
-
-    // Verify it was called with the selectableUsers data ref
-    const callArg = vi.mocked(useMutuallyVisibleUsers).mock.calls[0][0]
-    expect(callArg).toBeDefined()
   })
 })

@@ -29,10 +29,21 @@ vi.mock('@/app/stores/chat', () => ({
   })
 }))
 
-vi.mock('@tanstack/vue-query', () => ({
-  useQueryClient: () => ({
+vi.mock('@tanstack/vue-query', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@tanstack/vue-query')>()
+  return {
+    ...actual,
+    useQueryClient: () => ({
+      clear: vi.fn(),
+    })
+  }
+})
+
+vi.mock('@/lib/queryClientSingleton', () => ({
+  getQueryClient: () => ({
     clear: vi.fn(),
-  })
+  }),
+  createQueryClient: vi.fn()
 }))
 
 vi.mock('@/lib/errors/normalize', () => ({
@@ -45,7 +56,7 @@ const mockStorage = (() => {
   return {
     getItem: vi.fn((key: string) => store[key] ?? null),
     setItem: vi.fn((key: string, value: string) => { store[key] = value }),
-    removeItem: vi.fn((key: string) => {
+    removeItem: vi.fn((key: string): void => {
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete store[key]
     }),

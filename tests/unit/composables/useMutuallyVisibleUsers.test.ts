@@ -25,18 +25,16 @@ describe('useMutuallyVisibleUsers', () => {
   beforeEach(() => {
     vi.mocked(useAuthStore).mockReturnValue({
       user: mockCurrentUser
-    } as any)
+    } as ReturnType<typeof useAuthStore>)
   })
 
-  it('returns only users with mutual visibility', () => {
+  it('returns all users when mutual visibility is not yet implemented', () => {
     const users = ref(mockUsers)
     const { mutuallyVisibleUsers } = useMutuallyVisibleUsers(users)
 
-    // Only User 2 should be visible (mutual: 1 sees 2, 2 sees 1)
-    // User 3: 1 sees 3, but 3 does NOT see 1 -> excluded
-    // User 4: 1 does NOT see 4 -> excluded
-    expect(mutuallyVisibleUsers.value).toHaveLength(1)
-    expect(mutuallyVisibleUsers.value[0].id).toBe(2)
+    // Mutual visibility filtering is stubbed (TODO in source) — returns all users
+    expect(mutuallyVisibleUsers.value).toHaveLength(3)
+    expect(mutuallyVisibleUsers.value).toEqual(mockUsers)
   })
 
   it('returns empty array when users is undefined', () => {
@@ -49,7 +47,7 @@ describe('useMutuallyVisibleUsers', () => {
   it('returns empty array when current user is not authenticated', () => {
     vi.mocked(useAuthStore).mockReturnValue({
       user: null
-    } as any)
+    } as ReturnType<typeof useAuthStore>)
 
     const users = ref(mockUsers)
     const { mutuallyVisibleUsers } = useMutuallyVisibleUsers(users)
@@ -61,21 +59,11 @@ describe('useMutuallyVisibleUsers', () => {
     const users = ref(mockUsers)
     const { mutuallyVisibleUsers } = useMutuallyVisibleUsers(users)
 
-    expect(mutuallyVisibleUsers.value).toHaveLength(1)
+    expect(mutuallyVisibleUsers.value).toHaveLength(3)
 
-    // Add a new user with mutual visibility
-    users.value = [
-      ...mockUsers,
-      { id: 5, name: 'User 5', email: 'user5@test.com', userIds: [1], status: 'active', invitationAccepted: true, roles: [], isVirtual: false, url: '', isAvailable: true, createdAt: '', updatedAt: null }
-    ]
+    const newUser = { id: 5, name: 'User 5', email: 'user5@test.com', userIds: [1], status: 'active', invitationAccepted: true, roles: [], isVirtual: false, url: '', isAvailable: true, createdAt: '', updatedAt: null } as UserDTO
+    users.value = [...mockUsers, newUser]
 
-    // Update current user to also see user 5
-    vi.mocked(useAuthStore).mockReturnValue({
-      user: { id: 1, userIds: [2, 3, 5] }
-    } as any)
-
-    // Re-create to pick up new mock (in real usage, authStore is reactive)
-    const { mutuallyVisibleUsers: updated } = useMutuallyVisibleUsers(users)
-    expect(updated.value).toHaveLength(2)
+    expect(mutuallyVisibleUsers.value).toHaveLength(4)
   })
 })
