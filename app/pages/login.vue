@@ -1,7 +1,12 @@
 <template>
-  <div class="bg-[hsl(var(--card))] dark:bg-[hsl(var(--card))] rounded-xl p-8 sm:p-10" style="box-shadow: var(--shadow-lg);">
+  <div
+    class="bg-[hsl(var(--card))] dark:bg-[hsl(var(--card))] rounded-xl p-8 sm:p-10"
+    style="box-shadow: var(--shadow-lg)"
+  >
     <div class="text-center mb-8">
-      <h1 class="font-display text-3xl font-bold text-[hsl(var(--foreground))]">{{ t('login.title') }}</h1>
+      <h1 class="font-display text-3xl font-bold text-[hsl(var(--foreground))]">
+        {{ t('login.title') }}
+      </h1>
       <p class="text-[hsl(var(--muted-foreground))] mt-2">{{ t('login.subtitle') }}</p>
     </div>
 
@@ -52,11 +57,7 @@
 
       <!-- Remember Me -->
       <div class="flex items-center">
-        <UCheckbox
-          id="remember"
-          v-model="rememberMe"
-          :label="t('login.rememberMe')"
-        />
+        <UCheckbox id="remember" v-model="rememberMe" :label="t('login.rememberMe')" />
       </div>
 
       <!-- Error Message -->
@@ -129,13 +130,16 @@ const handleLogin = async () => {
         }
         // Redirect to the intended page or home
         const redirect = (route.query.redirect as string) || '/'
-        const safeRedirect = redirect.startsWith('/') && !redirect.startsWith('//') && !redirect.includes('://') ? redirect : '/'
+        const safeRedirect =
+          redirect.startsWith('/') && !redirect.startsWith('//') && !redirect.includes('://')
+            ? redirect
+            : '/'
         await router.push(safeRedirect)
       },
       onError: (error: unknown) => {
         loginError.value = error instanceof Error ? error.message : t('login.invalidCredentials')
       },
-    }
+    },
   )
 }
 
@@ -143,8 +147,11 @@ const handleLogin = async () => {
 onMounted(() => {
   if (authStore.isAuthenticated) {
     const redirect = (route.query.redirect as string) || '/'
-    const safeRedirect = redirect.startsWith('/') && !redirect.startsWith('//') && !redirect.includes('://') ? redirect : '/'
-    router.push(safeRedirect)
+    const safeRedirect =
+      redirect.startsWith('/') && !redirect.startsWith('//') && !redirect.includes('://')
+        ? redirect
+        : '/'
+    void router.push(safeRedirect)
   }
 
   // Sync dev email after hydration (fixes SSR/client mismatch)

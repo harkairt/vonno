@@ -1,5 +1,7 @@
 <template>
-  <header class="flex items-center justify-between px-4 py-3 border-b border-[hsl(var(--border))] bg-[hsl(var(--background))]">
+  <header
+    class="flex items-center justify-between px-4 py-3 border-b border-[hsl(var(--border))] bg-[hsl(var(--background))]"
+  >
     <!-- Agent info -->
     <div class="flex items-center gap-3">
       <UserAvatar
@@ -12,12 +14,7 @@
     </div>
 
     <!-- New chat button -->
-    <UButton
-      icon="i-heroicons-plus"
-      variant="ghost"
-      size="md"
-      @click="startNewChat"
-    />
+    <UButton icon="i-heroicons-plus" variant="ghost" size="md" @click="startNewChat" />
   </header>
 </template>
 
@@ -37,7 +34,7 @@ function startNewChat() {
   const { publicAgentId } = usePublicMode()
   const agentId = publicAgentId.value
   if (agentId) {
-    router.push(`/chats/public/new/${agentId}`)
+    void router.push(`/chats/public/new/${agentId}`)
   }
 }
 </script>

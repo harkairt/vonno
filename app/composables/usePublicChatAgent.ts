@@ -20,14 +20,18 @@ export function usePublicChatAgent(
   agentId: MaybeRefOrGetter<number | null>,
   options?: {
     enabled?: MaybeRefOrGetter<boolean>
-  }
+  },
 ) {
   const authStore = useAuthStore()
 
   return useQuery({
     queryKey: computed(() => {
       const id = toValue(agentId)
-      return id ? publicChatAgentQueryKeys.agent(id) : publicChatAgentQueryKeys.all
+      return [
+        ...(id ? publicChatAgentQueryKeys.agent(id) : publicChatAgentQueryKeys.all),
+        authStore.user,
+        authStore.user?.email,
+      ]
     }),
     queryFn: async (): Promise<AIPublicChatStartDTO> => {
       const id = toValue(agentId)
@@ -63,7 +67,11 @@ export function usePublicChatAgent(
     retry: (failureCount, error) => {
       if (error && typeof error === 'object' && 'code' in error) {
         const appError = error as AppError
-        if (appError.code === 'UNAUTHORIZED' || appError.code === 'FORBIDDEN' || appError.code === 'NOT_FOUND') {
+        if (
+          appError.code === 'UNAUTHORIZED' ||
+          appError.code === 'FORBIDDEN' ||
+          appError.code === 'NOT_FOUND'
+        ) {
           return false
         }
       }

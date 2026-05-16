@@ -50,7 +50,6 @@
             {{ user.isVirtual ? t('users.aiAgent') : user.email }}
           </p>
         </div>
-
       </button>
     </div>
   </div>
@@ -63,18 +62,13 @@ import UserAvatar from '~/components/UserAvatar.vue'
 const { t } = useI18n()
 const router = useRouter()
 
-const {
-  filteredUsers,
-  isLoadingUsers,
-  usersError,
-  userSearchQuery,
-  handleUserClick,
-} = useChatListData()
+const { filteredUsers, isLoadingUsers, usersError, userSearchQuery, handleUserClick } =
+  useChatListData()
 
 function onUserClick(userId: number) {
   const target = handleUserClick(userId)
   if (target) {
-    router.push(target)
+    void router.push(target)
   }
 }
 </script>

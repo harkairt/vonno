@@ -22,15 +22,17 @@ export function useSelectableUsers(options?: {
   const authStore = useAuthStore()
 
   return useQuery({
-    queryKey: userQueryKeys.selectable(),
+    queryKey: computed(() => [
+      ...userQueryKeys.selectable(),
+      authStore.user,
+      options?.email ?? authStore.user?.email,
+    ]),
     queryFn: async (): Promise<UserDTO[]> => {
       if (!authStore.user) {
         throw new Error('User not authenticated')
       }
 
-      const result = await userService.getSelectableUsers(
-        options?.email ?? authStore.user.email
-      )
+      const result = await userService.getSelectableUsers(options?.email ?? authStore.user.email)
 
       if (result.isErr()) {
         throw result.error

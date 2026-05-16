@@ -111,7 +111,7 @@ describe('Auth Store Token Refresh', () => {
     const savedData = mockLocalStorage.getItem('innochat-auth')
     expect(savedData).toBeTruthy()
 
-    const parsedData: Record<string, unknown> = JSON.parse(savedData!)
+    const parsedData = JSON.parse(savedData!) as Record<string, unknown>
     expect(parsedData.accessToken).toBe('refreshed-token')
     expect(parsedData.refreshToken).toBe('refreshed-refresh-token')
   })
@@ -221,7 +221,7 @@ describe('Auth Store Token Refresh', () => {
     const savedData = mockLocalStorage.getItem('innochat-auth')
     expect(savedData).toBeTruthy()
 
-    const parsedData: Record<string, unknown> = JSON.parse(savedData!)
+    const parsedData = JSON.parse(savedData!) as Record<string, unknown>
     expect(parsedData.accessToken).toBe('new-token')
     expect(parsedData.refreshToken).toBe('new-refresh')
   })
@@ -380,7 +380,7 @@ describe('setTokens Method', () => {
     const savedData = mockLocalStorage.getItem('innochat-auth')
     expect(savedData).toBeTruthy()
 
-    const parsedData: Record<string, unknown> = JSON.parse(savedData!)
+    const parsedData = JSON.parse(savedData!) as Record<string, unknown>
     expect(parsedData.accessToken).toBe('persisted-access')
     expect(parsedData.refreshToken).toBe('persisted-refresh')
   })

@@ -36,11 +36,7 @@
           >
             {{ t('chat.sessionMenu.cancel') }}
           </UButton>
-          <UButton
-            type="submit"
-            :loading="isPending"
-            :disabled="!canSave"
-          >
+          <UButton type="submit" :loading="isPending" :disabled="!canSave">
             {{ isPending ? t('chat.sessionMenu.saving') : t('chat.sessionMenu.save') }}
           </UButton>
         </div>
@@ -65,11 +61,7 @@
           >
             {{ t('chat.sessionMenu.cancel') }}
           </UButton>
-          <UButton
-            color="error"
-            :loading="isDeleting"
-            @click="handleDelete"
-          >
+          <UButton color="error" :loading="isDeleting" @click="handleDelete">
             {{ isDeleting ? t('chat.sessionMenu.deleting') : t('chat.sessionMenu.delete') }}
           </UButton>
         </div>
@@ -122,8 +114,8 @@ const menuItems = computed(() => {
       onSelect: () => {
         editedName.value = props.sessionName
         isModalOpen.value = true
-      }
-    }
+      },
+    },
   ]
 
   // Only show delete option for non-primary sessions
@@ -134,7 +126,7 @@ const menuItems = computed(() => {
       color: 'error',
       onSelect: () => {
         isDeleteModalOpen.value = true
-      }
+      },
     })
   }
 
@@ -149,11 +141,11 @@ async function handleSave() {
     await mutateAsync({
       sessionId: props.sessionId,
       sessionName: editedName.value.trim(),
-      agentId: props.agentId
+      agentId: props.agentId,
     })
     toast.add({
       title: t('chat.sessionMenu.editSuccess'),
-      color: 'success'
+      color: 'success',
     })
     isModalOpen.value = false
   } catch (error: unknown) {
@@ -161,7 +153,7 @@ async function handleSave() {
     toast.add({
       title: t('common.error'),
       description: message,
-      color: 'error'
+      color: 'error',
     })
   }
 }
@@ -177,19 +169,18 @@ async function handleDelete() {
   try {
     await deleteSession({
       sessionId: props.sessionId,
-      agentId: props.agentId
+      agentId: props.agentId,
     })
 
-    const activeSessionId = typeof route.params.sessionId === 'string'
-      ? route.params.sessionId
-      : undefined
+    const activeSessionId =
+      typeof route.params.sessionId === 'string' ? route.params.sessionId : undefined
     if (activeSessionId === props.sessionId) {
       await navigateTo('/chats', { replace: true })
     }
 
     toast.add({
       title: t('chat.sessionMenu.deleteSuccess'),
-      color: 'success'
+      color: 'success',
     })
     isDeleteModalOpen.value = false
   } catch (error: unknown) {
@@ -197,22 +188,25 @@ async function handleDelete() {
     toast.add({
       title: t('common.error'),
       description: message,
-      color: 'error'
+      color: 'error',
     })
   }
 }
 
 // Reset edited name when props change (e.g., external update)
-watch(() => props.sessionName, (newName) => {
-  if (!isModalOpen.value) {
-    editedName.value = newName
-  }
-})
+watch(
+  () => props.sessionName,
+  (newName) => {
+    if (!isModalOpen.value) {
+      editedName.value = newName
+    }
+  },
+)
 
 // Focus input when modal opens
 watch(isModalOpen, (open) => {
   if (open) {
-    nextTick(() => {
+    void nextTick(() => {
       inputRef.value?.inputRef?.el?.focus()
     })
   }
