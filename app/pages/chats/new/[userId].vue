@@ -16,18 +16,27 @@
           @click="navigateTo('/chats')"
         />
 
-        <div v-if="selectedUser" class="min-w-0 flex-1">
+        <div
+          v-if="selectedUser"
+          class="min-w-0 flex-1"
+        >
           <h1 class="text-xl font-semibold text-foreground truncate">
             {{ selectedUser.name || selectedUser.email }}
           </h1>
-          <p v-if="selectedUser?.email" class="text-sm text-muted-foreground truncate">
+          <p
+            v-if="selectedUser?.email"
+            class="text-sm text-muted-foreground truncate"
+          >
             {{ selectedUser.email }}
           </p>
         </div>
       </div>
 
       <!-- Loading State -->
-      <div v-if="isLoadingUsers" class="flex items-center justify-center h-full p-4">
+      <div
+        v-if="isLoadingUsers"
+        class="flex items-center justify-center h-full p-4"
+      >
         <div class="w-full max-w-md space-y-3 animate-[fade-in_0.4s_ease_both]">
           <div class="flex justify-end">
             <USkeleton
@@ -45,8 +54,14 @@
       </div>
 
       <!-- Chat Content -->
-      <div v-else-if="selectedUser" class="flex flex-col h-full min-h-0 overflow-hidden">
-        <div ref="messagesContainer" class="flex-1 overflow-y-auto min-h-0 p-4 flex flex-col">
+      <div
+        v-else-if="selectedUser"
+        class="flex flex-col h-full min-h-0 overflow-hidden"
+      >
+        <div
+          ref="messagesContainer"
+          class="flex-1 overflow-y-auto min-h-0 p-4 flex flex-col"
+        >
           <div class="flex-1" />
           <ChatMessages
             :messages="messages"
@@ -88,10 +103,18 @@
           >
             <template #actions>
               <div class="flex space-x-2">
-                <UButton size="xs" variant="outline" @click="clearError">
+                <UButton
+                  size="xs"
+                  variant="outline"
+                  @click="clearError"
+                >
                   {{ t('errors.tryAgain') }}
                 </UButton>
-                <UButton size="xs" variant="outline" @click="navigateTo('/chats')">
+                <UButton
+                  size="xs"
+                  variant="outline"
+                  @click="navigateTo('/chats')"
+                >
                   {{ t('errors.backToChats') }}
                 </UButton>
               </div>

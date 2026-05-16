@@ -1,6 +1,9 @@
 <template>
   <NuxtErrorBoundary @error="handleError">
-    <main id="main-content" class="flex flex-col h-full w-full">
+    <main
+      id="main-content"
+      class="flex flex-col h-full w-full"
+    >
       <!-- Header Section -->
       <div
         class="flex items-center gap-3 px-4 py-3 border-b border-[hsl(var(--border)/0.5)] min-h-[73px]"
@@ -18,10 +21,19 @@
           @click="navigateTo('/chats')"
         />
 
-        <div v-if="session" class="min-w-0 flex-1 group">
+        <div
+          v-if="session"
+          class="min-w-0 flex-1 group"
+        >
           <!-- View mode: title + pencil icon (pencil hidden for primary sessions) -->
-          <div v-if="!isEditingTitle" class="flex items-center gap-2">
-            <h1 class="text-xl font-semibold text-foreground truncate" data-testid="session-title">
+          <div
+            v-if="!isEditingTitle"
+            class="flex items-center gap-2"
+          >
+            <h1
+              class="text-xl font-semibold text-foreground truncate"
+              data-testid="session-title"
+            >
               {{ isPrimarySession ? otherMemberName : session.sessionName }}
             </h1>
             <button
@@ -32,7 +44,10 @@
               data-testid="edit-title-button"
               @click="startEditingTitle"
             >
-              <UIcon name="i-lucide-pencil" class="size-4" />
+              <UIcon
+                name="i-lucide-pencil"
+                class="size-4"
+              />
             </button>
           </div>
 
@@ -49,13 +64,19 @@
             @blur="saveTitle"
           />
 
-          <p v-if="otherParticipantNames" class="text-sm text-muted-foreground truncate">
+          <p
+            v-if="otherParticipantNames"
+            class="text-sm text-muted-foreground truncate"
+          >
             {{ otherParticipantNames }}
           </p>
         </div>
 
         <!-- Shimmer skeleton fallback when session data isn't available yet -->
-        <div v-else class="min-w-0 flex-1 space-y-2">
+        <div
+          v-else
+          class="min-w-0 flex-1 space-y-2"
+        >
           <USkeleton class="h-6 w-48" />
           <USkeleton class="h-4 w-32" />
         </div>
@@ -89,7 +110,10 @@
       </div>
 
       <!-- Loading State -->
-      <div v-if="isLoading" class="flex items-center justify-center h-full p-4">
+      <div
+        v-if="isLoading"
+        class="flex items-center justify-center h-full p-4"
+      >
         <div class="w-full max-w-md space-y-3 animate-[fade-in_0.4s_ease_both]">
           <div class="flex justify-end">
             <USkeleton
@@ -107,7 +131,10 @@
       </div>
 
       <!-- Error State -->
-      <div v-else-if="isError" class="flex items-center justify-center p-6 h-full">
+      <div
+        v-else-if="isError"
+        class="flex items-center justify-center p-6 h-full"
+      >
         <div class="text-center max-w-md">
           <UAlert
             variant="soft"
@@ -117,10 +144,18 @@
           >
             <template #actions>
               <div class="flex space-x-2">
-                <UButton size="xs" variant="outline" @click="refetch()">
+                <UButton
+                  size="xs"
+                  variant="outline"
+                  @click="refetch()"
+                >
                   {{ t('errors.tryAgain') }}
                 </UButton>
-                <UButton size="xs" variant="outline" @click="navigateTo('/chats')">
+                <UButton
+                  size="xs"
+                  variant="outline"
+                  @click="navigateTo('/chats')"
+                >
                   {{ t('errors.backToChats') }}
                 </UButton>
               </div>
@@ -130,9 +165,15 @@
       </div>
 
       <!-- Chat Content -->
-      <div v-else-if="session" class="flex flex-col h-full min-h-0">
+      <div
+        v-else-if="session"
+        class="flex flex-col h-full min-h-0"
+      >
         <div class="relative flex-1 overflow-hidden min-h-0">
-          <div ref="messagesContainer" class="h-full overflow-y-auto p-4 flex flex-col">
+          <div
+            ref="messagesContainer"
+            class="h-full overflow-y-auto p-4 flex flex-col"
+          >
             <div class="flex-1" />
             <Transition
               name="shimmer-swap"
@@ -201,7 +242,10 @@
       </div>
 
       <!-- Session Not Found -->
-      <div v-else class="flex items-center justify-center p-6 h-full">
+      <div
+        v-else
+        class="flex items-center justify-center p-6 h-full"
+      >
         <div class="text-center max-w-md">
           <UAlert
             variant="soft"
@@ -210,7 +254,11 @@
             class="mb-4"
           >
             <template #actions>
-              <UButton size="xs" variant="outline" @click="navigateTo('/chats')">
+              <UButton
+                size="xs"
+                variant="outline"
+                @click="navigateTo('/chats')"
+              >
                 {{ t('errors.backToChats') }}
               </UButton>
             </template>
@@ -230,10 +278,18 @@
           >
             <template #actions>
               <div class="flex space-x-2">
-                <UButton size="xs" variant="outline" @click="clearError">
+                <UButton
+                  size="xs"
+                  variant="outline"
+                  @click="clearError"
+                >
                   {{ t('errors.tryAgain') }}
                 </UButton>
-                <UButton size="xs" variant="outline" @click="navigateTo('/chats')">
+                <UButton
+                  size="xs"
+                  variant="outline"
+                  @click="navigateTo('/chats')"
+                >
                   {{ t('errors.backToChats') }}
                 </UButton>
               </div>

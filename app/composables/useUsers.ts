@@ -21,12 +21,9 @@ export function useSelectableUsers(options?: {
 }) {
   const authStore = useAuthStore()
 
+  // eslint-disable-next-line @tanstack/query/exhaustive-deps -- email is an optional override, not a cache discriminator
   return useQuery({
-    queryKey: computed(() => [
-      ...userQueryKeys.selectable(),
-      authStore.user,
-      options?.email ?? authStore.user?.email,
-    ]),
+    queryKey: userQueryKeys.selectable(),
     queryFn: async (): Promise<UserDTO[]> => {
       if (!authStore.user) {
         throw new Error('User not authenticated')

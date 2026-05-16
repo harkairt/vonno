@@ -27,11 +27,7 @@ export function usePublicChatAgent(
   return useQuery({
     queryKey: computed(() => {
       const id = toValue(agentId)
-      return [
-        ...(id ? publicChatAgentQueryKeys.agent(id) : publicChatAgentQueryKeys.all),
-        authStore.user,
-        authStore.user?.email,
-      ]
+      return id ? publicChatAgentQueryKeys.agent(id) : publicChatAgentQueryKeys.all
     }),
     queryFn: async (): Promise<AIPublicChatStartDTO> => {
       const id = toValue(agentId)

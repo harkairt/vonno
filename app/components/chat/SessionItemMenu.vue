@@ -12,9 +12,15 @@
   </UDropdownMenu>
 
   <!-- Edit Modal (separate from dropdown) -->
-  <UModal v-model:open="isModalOpen" :title="t('chat.sessionMenu.editName')">
+  <UModal
+    v-model:open="isModalOpen"
+    :title="t('chat.sessionMenu.editName')"
+  >
     <template #content>
-      <form class="p-4" @submit.prevent="handleSave">
+      <form
+        class="p-4"
+        @submit.prevent="handleSave"
+      >
         <label class="block text-sm font-medium mb-2">
           {{ t('chat.sessionMenu.sessionNameLabel') }}
         </label>
@@ -36,7 +42,11 @@
           >
             {{ t('chat.sessionMenu.cancel') }}
           </UButton>
-          <UButton type="submit" :loading="isPending" :disabled="!canSave">
+          <UButton
+            type="submit"
+            :loading="isPending"
+            :disabled="!canSave"
+          >
             {{ isPending ? t('chat.sessionMenu.saving') : t('chat.sessionMenu.save') }}
           </UButton>
         </div>
@@ -45,7 +55,10 @@
   </UModal>
 
   <!-- Delete Confirmation Modal -->
-  <UModal v-model:open="isDeleteModalOpen" :title="t('chat.sessionMenu.deleteConfirmTitle')">
+  <UModal
+    v-model:open="isDeleteModalOpen"
+    :title="t('chat.sessionMenu.deleteConfirmTitle')"
+  >
     <template #content>
       <div class="p-4">
         <p class="text-sm text-(--ui-text-muted) mb-4">
@@ -61,7 +74,11 @@
           >
             {{ t('chat.sessionMenu.cancel') }}
           </UButton>
-          <UButton color="error" :loading="isDeleting" @click="handleDelete">
+          <UButton
+            color="error"
+            :loading="isDeleting"
+            @click="handleDelete"
+          >
             {{ isDeleting ? t('chat.sessionMenu.deleting') : t('chat.sessionMenu.delete') }}
           </UButton>
         </div>

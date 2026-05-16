@@ -196,129 +196,121 @@ async function handleNewSessionCacheUpdate(params: SendMessageSuccessParams): Pr
   }
 }
 
-/**
- * Send message mutation composable
- * Handles sending text messages with optimistic updates
- */
+interface SendMessageOnMutateParams {
+  queryClient: ReturnType<typeof useQueryClient>
+  chatStore: ReturnType<typeof useChatStore>
+  authStore: ReturnType<typeof useAuthStore>
+}
+
+async function handleSendMessageOnMutate(
+  request: AiQuestionRequestDTO,
+  params: SendMessageOnMutateParams,
+): Promise<SendMessageMutateContext> {
+  const { queryClient, chatStore, authStore } = params
+
+  await queryClient.cancelQueries({
+    queryKey: chatQueryKeys.session(request.sessionId),
+  })
+
+  const existingSession = queryClient.getQueryData<AISessionDTO>(
+    chatQueryKeys.session(request.sessionId),
+  )
+  const isNewSession = !existingSession
+  const previousSession = existingSession
+
+  const tempMessageId = generateTempId()
+  const userMessageTimestamp = new Date()
+
+  const agent = getAgentFromCache(queryClient, request.agentId)
+  const virtualAgentName = agent?.isVirtual ? agent.name : undefined
+  if (virtualAgentName) {
+    chatStore.addTypingUser(request.sessionId, virtualAgentName)
+  }
+
+  const tempMessageDTO = createTempMessageDTO(
+    request,
+    tempMessageId,
+    userMessageTimestamp,
+    authStore,
+  )
+
+  queryClient.setQueryData<AISessionDTO>(chatQueryKeys.session(request.sessionId), (old) => {
+    if (old) {
+      return {
+        ...old,
+        messages: [...(old.messages ?? []), tempMessageDTO],
+      }
+    }
+
+    return {
+      ...createSyntheticSession(request, authStore, userMessageTimestamp.toISOString()),
+      messages: [tempMessageDTO],
+    }
+  })
+
+  return {
+    previousSession,
+    tempMessageId,
+    tempMessageDTO,
+    userMessageTimestamp,
+    isNewSession,
+    virtualAgentName,
+  }
+}
+
+function handleSendMessageOnError(
+  request: AiQuestionRequestDTO,
+  context: SendMessageMutateContext | undefined,
+  params: SendMessageOnMutateParams,
+): void {
+  const { queryClient, chatStore } = params
+
+  if (context?.virtualAgentName) {
+    chatStore.removeTypingUser(request.sessionId, context.virtualAgentName)
+  }
+
+  if (context?.tempMessageId) {
+    queryClient.setQueryData<AISessionDTO>(chatQueryKeys.session(request.sessionId), (old) => {
+      if (!old) return old
+      return {
+        ...old,
+        messages: (old.messages ?? []).filter((m) => m.messageID !== context.tempMessageId),
+      }
+    })
+
+    if (context?.tempMessageDTO) {
+      chatStore.addFailedMessage(request.sessionId, {
+        ...context.tempMessageDTO,
+        status: MessageStatus.FAILED,
+      })
+    }
+  }
+}
+
 export function useSendMessage() {
   const queryClient = useQueryClient()
   const chatStore = useChatStore()
   const authStore = useAuthStore()
+  const mutateParams = { queryClient, chatStore, authStore }
 
   return useMutation({
     mutationFn: async (request: AiQuestionRequestDTO): Promise<AISessionMessageDTO> => {
       const result = await chatService.sendQuestion(request)
-
-      if (result.isErr()) {
-        throw result.error
-      }
-
+      if (result.isErr()) throw result.error
       return result.value
     },
 
-    // Optimistic update - add message immediately
-    onMutate: async (request) => {
-      await queryClient.cancelQueries({
-        queryKey: chatQueryKeys.session(request.sessionId),
-      })
+    onMutate: (request) => handleSendMessageOnMutate(request, mutateParams),
 
-      const existingSession = queryClient.getQueryData<AISessionDTO>(
-        chatQueryKeys.session(request.sessionId),
-      )
-      const isNewSession = !existingSession
-      const previousSession = existingSession
-
-      const tempMessageId = generateTempId()
-      const userMessageTimestamp = new Date()
-
-      const agent = getAgentFromCache(queryClient, request.agentId)
-      const virtualAgentName = agent?.isVirtual ? agent.name : undefined
-      if (virtualAgentName) {
-        chatStore.addTypingUser(request.sessionId, virtualAgentName)
-      }
-
-      const tempMessageDTO = createTempMessageDTO(
-        request,
-        tempMessageId,
-        userMessageTimestamp,
-        authStore,
-      )
-
-      queryClient.setQueryData<AISessionDTO>(chatQueryKeys.session(request.sessionId), (old) => {
-        if (old) {
-          return {
-            ...old,
-            messages: [...(old.messages ?? []), tempMessageDTO],
-          }
-        }
-
-        return {
-          ...createSyntheticSession(request, authStore, userMessageTimestamp.toISOString()),
-          messages: [tempMessageDTO],
-        }
-      })
-
-      return {
-        previousSession,
-        tempMessageId,
-        tempMessageDTO,
-        userMessageTimestamp,
-        isNewSession,
-        virtualAgentName,
-      }
-    },
-
-    // On success, add server response (keep temp user message - will be replaced by refetch)
     onSuccess: async (serverMessage, request, context) => {
-      handleSendMessageSuccess({
-        queryClient,
-        chatStore,
-        authStore,
-        serverMessage,
-        request,
-        context,
-      })
-      await handleNewSessionCacheUpdate({
-        queryClient,
-        chatStore,
-        authStore,
-        serverMessage,
-        request,
-        context,
-      })
-      // Note: No invalidation here - onSettled handles sessions/unread, SignalR handles real-time sync
+      handleSendMessageSuccess({ ...mutateParams, serverMessage, request, context })
+      await handleNewSessionCacheUpdate({ ...mutateParams, serverMessage, request, context })
     },
 
-    // On error, rollback
-    onError: (_error, request, context) => {
-      if (context?.virtualAgentName) {
-        chatStore.removeTypingUser(request.sessionId, context.virtualAgentName)
-      }
+    onError: (_error, request, context) => handleSendMessageOnError(request, context, mutateParams),
 
-      if (context?.tempMessageId) {
-        queryClient.setQueryData<AISessionDTO>(chatQueryKeys.session(request.sessionId), (old) => {
-          if (!old) return old
-          return {
-            ...old,
-            messages: (old.messages ?? []).filter((m) => m.messageID !== context.tempMessageId),
-          }
-        })
-
-        if (context?.tempMessageDTO) {
-          chatStore.addFailedMessage(request.sessionId, {
-            ...context.tempMessageDTO,
-            status: MessageStatus.FAILED,
-          })
-        }
-      }
-
-      // Error handled by mutation error state
-    },
-
-    // NOTE: No onSettled invalidations needed - this was causing a cascade of 26+ requests
-    // - Session cache is updated optimistically in onSuccess
-    // - Sidebar sessions list will sync on next poll (60s) or navigation
-    // - Unread counts don't change when YOU send a message (only when others do)
+    // NOTE: No onSettled — was causing 26+ request cascade.
+    // Session cache updated in onSuccess; sidebar syncs on poll/navigation.
   })
 }
 

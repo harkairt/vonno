@@ -47,34 +47,32 @@ export default defineNuxtPlugin(async (nuxtApp) => {
     if (import.meta.dev) logger.debug('User authenticated on app load, initializing connection...')
 
     // Small delay to ensure all stores and plugins are fully initialized
-    setTimeout(async () => {
-      try {
-        const signalr = useSignalR()
-        // Get queryClient from nuxtApp (provided by vue-query.client.ts plugin)
-        const queryClient = nuxtApp.$queryClient as QueryClient
+    setTimeout(() => {
+      void (async () => {
+        try {
+          const signalr = useSignalR()
+          const queryClient = nuxtApp.$queryClient as QueryClient
 
-        await signalr.connect(authStore.accessToken ?? undefined)
+          await signalr.connect(authStore.accessToken ?? undefined)
 
-        // Setup event listeners after connection
-        if (signalr.isConnected.value) {
-          setupChatEventListeners(signalr, queryClient)
+          if (signalr.isConnected.value) {
+            setupChatEventListeners(signalr, queryClient)
+          }
+
+          watch(
+            () => signalr.isConnected.value,
+            (connected) => {
+              if (connected) {
+                setupChatEventListeners(signalr, queryClient)
+              }
+            },
+          )
+
+          if (import.meta.dev) logger.debug('Auto-connected on app initialization')
+        } catch (error) {
+          if (import.meta.dev) logger.error('Failed to auto-connect on app load:', error)
         }
-
-        // Also setup listeners when reconnecting
-        watch(
-          () => signalr.isConnected.value,
-          (connected) => {
-            if (connected) {
-              setupChatEventListeners(signalr, queryClient)
-            }
-          },
-        )
-
-        if (import.meta.dev) logger.debug('Auto-connected on app initialization')
-      } catch (error) {
-        if (import.meta.dev) logger.error('Failed to auto-connect on app load:', error)
-        // Don't throw - SignalR is not critical for app initialization
-      }
+      })()
     }, 500)
   } else {
     if (import.meta.dev) logger.debug('No authenticated user on app load, skipping auto-connect')

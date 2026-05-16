@@ -26,7 +26,10 @@
   </div>
 
   <!-- Main content: minimal full-height container -->
-  <div v-else class="h-dvh flex flex-col bg-[hsl(var(--background))]">
+  <div
+    v-else
+    class="h-dvh flex flex-col bg-[hsl(var(--background))]"
+  >
     <PublicChatHeader
       v-if="publicChatData?.agent"
       :agent-name="publicChatData.agent.name"

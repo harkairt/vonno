@@ -92,7 +92,7 @@ export function useCurrentUser(options?: {
   const authStore = useAuthStore()
 
   return useQuery({
-    queryKey: [...authQueryKeys.current(), authStore.user] as const,
+    queryKey: authQueryKeys.current(),
     queryFn: async (): Promise<UserDTO | null> => {
       return authStore.user
     },
@@ -118,7 +118,7 @@ export function useUserProfile(
   const authStore = useAuthStore()
 
   return useQuery({
-    queryKey: [...authQueryKeys.profile(email), authStore.user?.email, authStore.user] as const,
+    queryKey: authQueryKeys.profile(email),
     queryFn: async (): Promise<UserDTO> => {
       if (authStore.user?.email === email && authStore.user) {
         return authStore.user

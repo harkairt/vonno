@@ -33,7 +33,7 @@ export function useChatSessions(options?: { enabled?: boolean; staleTime?: numbe
   const authStore = useAuthStore()
 
   return useQuery({
-    queryKey: computed(() => [...chatQueryKeys.sessions(), authStore.user, authStore.user?.email]),
+    queryKey: chatQueryKeys.sessions(),
     queryFn: async (): Promise<AISessionHeaderDTO[]> => {
       if (!authStore.user) {
         throw new Error('User not authenticated')
@@ -85,7 +85,7 @@ export function useChatSession(
   const queryClient = useQueryClient()
 
   const query = useQuery({
-    queryKey: computed(() => [...chatQueryKeys.session(sessionId), authStore.user]),
+    queryKey: chatQueryKeys.session(sessionId),
     queryFn: async (): Promise<AISessionDTO> => {
       if (!authStore.user) {
         throw new Error('User not authenticated')
@@ -140,7 +140,7 @@ export function useUnreadMessageCounts(options?: { enabled?: boolean; staleTime?
   const authStore = useAuthStore()
 
   return useQuery({
-    queryKey: computed(() => [...chatQueryKeys.unread(), authStore.user, authStore.user?.email]),
+    queryKey: chatQueryKeys.unread(),
     queryFn: async (): Promise<GetUnreadMessagesDTO[]> => {
       if (!authStore.user) {
         throw new Error('User not authenticated')
@@ -186,13 +186,9 @@ export function useWelcomeMessage(
 ) {
   const authStore = useAuthStore()
 
+  // eslint-disable-next-line @tanstack/query/exhaustive-deps -- sessionId is optional context, not a cache discriminator
   return useQuery({
-    queryKey: computed(() => [
-      ...chatQueryKeys.welcome(toValue(agentId)),
-      authStore.user,
-      authStore.user?.email,
-      options?.sessionId,
-    ]),
+    queryKey: computed(() => chatQueryKeys.welcome(toValue(agentId))),
     queryFn: async (): Promise<AIWelcomeMessageDTO> => {
       if (!authStore.user) {
         throw new Error('User not authenticated')
@@ -253,12 +249,9 @@ export function useMessage(
 ) {
   const authStore = useAuthStore()
 
+  // eslint-disable-next-line @tanstack/query/exhaustive-deps -- agentId is a fetch param, not a cache discriminator
   return useQuery({
-    queryKey: computed(() => [
-      ...chatQueryKeys.message(toValue(messageId)),
-      authStore.user,
-      toValue(agentId),
-    ]),
+    queryKey: computed(() => chatQueryKeys.message(toValue(messageId))),
     queryFn: async (): Promise<AISessionMessageDTO> => {
       if (!authStore.user) {
         throw new Error('User not authenticated')
@@ -315,13 +308,9 @@ export function useSessionUnreadCount(
 ) {
   const authStore = useAuthStore()
 
+  // eslint-disable-next-line @tanstack/query/exhaustive-deps -- agentId is a fetch param, not a cache discriminator
   return useQuery({
-    queryKey: computed(() => [
-      ...chatQueryKeys.sessionUnread(toValue(sessionId)),
-      authStore.user,
-      authStore.user?.email,
-      toValue(agentId),
-    ]),
+    queryKey: computed(() => chatQueryKeys.sessionUnread(toValue(sessionId))),
     queryFn: async (): Promise<number> => {
       if (!authStore.user) {
         throw new Error('User not authenticated')

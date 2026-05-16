@@ -23,7 +23,7 @@ export default defineConfig({
       'lib/**/__tests__/**/*.{test,spec}.{js,ts,jsx,tsx}',
       'stores/**/__tests__/**/*.{test,spec}.{js,ts,jsx,tsx}',
       'composables/**/__tests__/**/*.{test,spec}.{js,ts,jsx,tsx}',
-      'types/**/__tests__/**/*.{test,spec}.{js,ts,jsx,tsx}'
+      'types/**/__tests__/**/*.{test,spec}.{js,ts,jsx,tsx}',
     ],
 
     // Exclude patterns
@@ -34,7 +34,7 @@ export default defineConfig({
       '.output',
       'tests/e2e/**',
       // These test files reference components that don't exist yet
-      'tests/unit/components/chats/**'
+      'tests/unit/components/chats/**',
     ],
 
     // Coverage configuration
@@ -46,7 +46,7 @@ export default defineConfig({
         'app/stores/**/*.{js,ts}',
         'app/composables/**/*.{js,ts}',
         'app/utils/**/*.{js,ts}',
-        'types/**/*.{ts}'
+        'types/**/*.{ts}',
       ],
       exclude: [
         'lib/**/__tests__/**',
@@ -55,7 +55,7 @@ export default defineConfig({
         'types/**/__tests__/**',
         'tests/**',
         '**/*.d.ts',
-        '**/*.config.*'
+        '**/*.config.*',
       ],
       thresholds: {
         global: {
@@ -65,9 +65,9 @@ export default defineConfig({
           branches: 76,
           functions: 52,
           lines: 41,
-          statements: 41
-        }
-      }
+          statements: 41,
+        },
+      },
     },
 
     // Test timeout
@@ -80,12 +80,7 @@ export default defineConfig({
     isolate: true,
 
     // Watch mode settings
-    watchExclude: [
-      'node_modules',
-      'dist',
-      '.nuxt',
-      '.output'
-    ]
+    watchExclude: ['node_modules', 'dist', '.nuxt', '.output'],
   },
 
   // Resolve configuration
@@ -94,20 +89,20 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./', import.meta.url)),
       '~': fileURLToPath(new URL('./app', import.meta.url)),
       '~~': fileURLToPath(new URL('./', import.meta.url)),
-      '@@': fileURLToPath(new URL('./', import.meta.url))
-    }
+      '@@': fileURLToPath(new URL('./', import.meta.url)),
+    },
   },
 
   // Define global constants
   define: {
     __VUE_OPTIONS_API__: true,
     __VUE_PROD_DEVTOOLS__: false,
-    __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: false
+    __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: false,
   },
 
   // Environment-specific configuration
   env: {
     NODE_ENV: 'test',
-    NUXT_PUBLIC_API_BASE_URL: 'http://localhost:3000'
-  }
+    NUXT_PUBLIC_API_BASE_URL: 'http://localhost:3000',
+  },
 })

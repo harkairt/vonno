@@ -14,7 +14,12 @@
     </div>
 
     <!-- New chat button -->
-    <UButton icon="i-heroicons-plus" variant="ghost" size="md" @click="startNewChat" />
+    <UButton
+      icon="i-heroicons-plus"
+      variant="ghost"
+      size="md"
+      @click="startNewChat"
+    />
   </header>
 </template>
 

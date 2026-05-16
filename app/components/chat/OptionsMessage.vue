@@ -1,7 +1,10 @@
 <template>
   <div class="space-y-3">
     <!-- Question text -->
-    <MarkdownContent v-if="payload.Text" :content="payload.Text" />
+    <MarkdownContent
+      v-if="payload.Text"
+      :content="payload.Text"
+    />
 
     <!-- Combobox (single-select only) -->
     <div
@@ -19,7 +22,10 @@
         :content="{ side: 'top' }"
         class="w-full"
       />
-      <div ref="plainTextWrapper" class="overflow-hidden min-h-0">
+      <div
+        ref="plainTextWrapper"
+        class="overflow-hidden min-h-0"
+      >
         <div class="pt-3">
           <UInput
             v-model="plainText"
@@ -32,7 +38,10 @@
     </div>
 
     <!-- Single-select radio list -->
-    <div v-else-if="!payload.MultiSelectEnabled" class="space-y-1.5">
+    <div
+      v-else-if="!payload.MultiSelectEnabled"
+      class="space-y-1.5"
+    >
       <div
         v-for="item in payload.Items"
         :key="item.Key"
@@ -55,7 +64,10 @@
               : 'border-[hsl(var(--muted-foreground))]'
           "
         >
-          <div v-if="selectedSingle === item.Value" class="w-1.5 h-1.5 rounded-full bg-white" />
+          <div
+            v-if="selectedSingle === item.Value"
+            class="w-1.5 h-1.5 rounded-full bg-white"
+          />
         </div>
         <span class="text-sm">{{ item.Value }}</span>
       </div>
@@ -81,12 +93,19 @@
             @click.stop
           />
         </template>
-        <span v-else class="text-sm">{{ t('chat.options.customOption') }}</span>
+        <span
+          v-else
+          class="text-sm"
+          >{{ t('chat.options.customOption') }}</span
+        >
       </div>
     </div>
 
     <!-- Multi-select list -->
-    <div v-else class="space-y-1.5">
+    <div
+      v-else
+      class="space-y-1.5"
+    >
       <div
         v-for="item in payload.Items"
         :key="item.Key"
@@ -120,7 +139,13 @@
     </div>
 
     <!-- Submit button (only shown when active) -->
-    <UButton v-if="isActive" size="sm" :disabled="!hasSelection" class="mt-2" @click="handleSubmit">
+    <UButton
+      v-if="isActive"
+      size="sm"
+      :disabled="!hasSelection"
+      class="mt-2"
+      @click="handleSubmit"
+    >
       {{ t('chat.options.submit') }}
     </UButton>
   </div>

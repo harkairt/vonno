@@ -10,10 +10,16 @@
       <p class="text-[hsl(var(--muted-foreground))] mt-2">{{ t('login.subtitle') }}</p>
     </div>
 
-    <form class="space-y-6" @submit.prevent="handleLogin">
+    <form
+      class="space-y-6"
+      @submit.prevent="handleLogin"
+    >
       <!-- Email Field -->
       <div>
-        <label for="email" class="block text-sm font-medium text-[hsl(var(--foreground))] mb-2">
+        <label
+          for="email"
+          class="block text-sm font-medium text-[hsl(var(--foreground))] mb-2"
+        >
           {{ t('login.email') }}
         </label>
         <UInput
@@ -30,7 +36,10 @@
 
       <!-- Password Field -->
       <div>
-        <label for="password" class="block text-sm font-medium text-[hsl(var(--foreground))] mb-2">
+        <label
+          for="password"
+          class="block text-sm font-medium text-[hsl(var(--foreground))] mb-2"
+        >
           {{ t('login.password') }}
         </label>
         <div class="relative">
@@ -49,15 +58,27 @@
             class="absolute inset-y-0 right-0 flex items-center pr-3 text-[hsl(var(--foreground))] hover:bg-[hsl(var(--accent))] rounded-md transition-colors"
             @click="showPassword = !showPassword"
           >
-            <UIcon v-if="showPassword" name="i-heroicons-eye-slash" class="size-5" />
-            <UIcon v-else name="i-heroicons-eye" class="size-5" />
+            <UIcon
+              v-if="showPassword"
+              name="i-heroicons-eye-slash"
+              class="size-5"
+            />
+            <UIcon
+              v-else
+              name="i-heroicons-eye"
+              class="size-5"
+            />
           </button>
         </div>
       </div>
 
       <!-- Remember Me -->
       <div class="flex items-center">
-        <UCheckbox id="remember" v-model="rememberMe" :label="t('login.rememberMe')" />
+        <UCheckbox
+          id="remember"
+          v-model="rememberMe"
+          :label="t('login.rememberMe')"
+        />
       </div>
 
       <!-- Error Message -->
@@ -121,7 +142,7 @@ const handleLogin = async () => {
   login(
     { email: email.value, password: password.value, mode: AuthenticationMode.Basic },
     {
-      onSuccess: async () => {
+      onSuccess: () => {
         // Save or clear remembered email based on checkbox
         if (rememberMe.value) {
           saveRememberedEmail(email.value)
@@ -134,7 +155,7 @@ const handleLogin = async () => {
           redirect.startsWith('/') && !redirect.startsWith('//') && !redirect.includes('://')
             ? redirect
             : '/'
-        await router.push(safeRedirect)
+        void router.push(safeRedirect)
       },
       onError: (error: unknown) => {
         loginError.value = error instanceof Error ? error.message : t('login.invalidCredentials')

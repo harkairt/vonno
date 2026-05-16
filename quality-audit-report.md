@@ -1,76 +1,93 @@
 # Quality Audit Report
 
 **Project**: vonno (InnoChat) — TypeScript + Nuxt 4 + Vue 3 + TanStack Query + Pinia
-**Date**: 2026-05-13
+**Date**: 2026-05-16
 **quality-toolkit**: v0.1.1
 
 ## Session Summary
 
-- **Applied**: 7/7 changes
-- **Skipped**: 0 suggestions
+- **Applied**: 5/8 changes
+- **Skipped**: 2 suggestions (CI parallelization, CI coverage gate)
 - **Remaining**: 0 suggestions
+- **TODOs**: Enable GitHub push protection (Settings → Code security)
 
-## Updated Quality Gate Maturity: 45/90 → 5.0/10 (Solid)
+## Progress Since Last Audit
 
-Previous: 31/90 → 3.4/10 (Basic) — **+14 points**
+**Last audit**: 2026-05-13
+**Score change**: 45/90 → 59/90 (+14)
 
-| Dimension            | Previous | Current | Change | Status | Details                                                    |
-|----------------------|----------|---------|--------|--------|------------------------------------------------------------|
-| Linting              | 6/10     | 7/10    | +1     | ⚠️     | Added @tanstack/eslint-plugin-query, sonarjs rules, no-console always-on |
-| Formatting           | 1/10     | 7/10    | +6     | ✅     | Prettier configured + eslint-config-prettier + lint-staged |
-| Type checking        | 8/10     | 8/10    | —      | ✅     | strict: true, strictNullChecks, no-explicit-any error      |
-| Complexity limits    | 5/10     | 8/10    | +3     | ✅     | Cognitive complexity (sonarjs), max-depth 4, max-params 4  |
-| Duplication detection| 0/10     | 5/10    | +5     | ⚠️     | jscpd configured (threshold 5%, minLines 10, minTokens 50) |
-| Test coverage gate   | 6/10     | 6/10    | —      | ⚠️     | Ratcheted thresholds (branches 76%, lines 41%). No CI enforcement |
-| Pre-commit hooks     | 5/10     | 6/10    | +1     | ⚠️     | Husky + lint-staged now runs prettier --write + eslint --fix |
-| CI quality gates     | 0/10     | 0/10    | —      | ❌     | No CI pipeline found                                       |
-| Security scanning    | 0/10     | 3/10    | +3     | ⚠️     | npm audit script added (audit:security). No CI enforcement |
+| Dimension             | Previous | Current | Change |
+|-----------------------|----------|---------|--------|
+| Linting               | 7/10     | 9/10    | +2     |
+| Formatting            | 7/10     | 8/10    | +1     |
+| Type checking         | 8/10     | 8/10    | —      |
+| Complexity limits     | 8/10     | 8/10    | —      |
+| Duplication detection | 5/10     | 7/10    | +2     |
+| Test coverage gate    | 6/10     | 6/10    | —      |
+| Pre-commit hooks      | 6/10     | 6/10    | —      |
+| CI quality gates      | 0/10     | 5/10    | +5     |
+| Security scanning     | 3/10     | 2/10    | -1     |
+
+### Quality Gate Maturity: 59/90 → 6.6/10 (Solid)
+
+| Dimension             | Score | Status | Details                                                              |
+|-----------------------|-------|--------|----------------------------------------------------------------------|
+| Linting               | 9/10  | ✅     | ESLint type-aware + sonarjs + tanstack-query + regexp. 0 issues      |
+| Formatting            | 8/10  | ✅     | Prettier + lint-staged + format:check script. 49 files need formatting |
+| Type checking         | 8/10  | ✅     | strict: true, no-explicit-any error, enforced in CI. 0 TS errors    |
+| Complexity limits     | 8/10  | ✅     | cognitive-complexity 15, max-depth 4, max-params 4, max-lines 80    |
+| Duplication detection | 7/10  | ⚠️     | jscpd configured (3% threshold, tightened from 5%). Actual: 1.54%   |
+| Test coverage gate    | 6/10  | ⚠️     | Ratcheted thresholds (branches 76%, lines 41%). Not enforced in CI   |
+| Pre-commit hooks      | 6/10  | ⚠️     | Husky + lint-staged: prettier --write + eslint --fix on staged files |
+| CI quality gates      | 5/10  | ⚠️     | CI: lint + typecheck + tests + build. E2E has concurrency group      |
+| Security scanning     | 2/10  | ❌     | npm audit script local only. TODO: enable GitHub push protection     |
 
 ## Current Issues Snapshot
 
-- **ESLint**: 106 errors, 275 warnings (381 total — was 249 before new rules)
-- **New warnings from this session**: ~132 (sonarjs rules, no-console, max-depth, max-params)
-- **Formatter**: Prettier configured but codebase not yet formatted (run `npx prettier --write .`)
-- **Coverage**: Ratcheted thresholds (branches 76%, fns 52%, lines 41%, stmts 41%)
-- **Duplication**: jscpd configured, not yet run
-- **Security**: `npm run audit:security` available
+- **ESLint**: 0 errors, 0 warnings across 166 files
+- **Prettier**: 49 files with formatting drift (run `npm run format:fix`)
+- **TypeScript**: 0 errors
+- **Duplication**: 1.54% (16 clones) — well under 3% threshold
+- **Coverage**: Ratcheted at branches 76%, fns 52%, lines 41%, stmts 41%
+- **Tests**: 1 failing test (`tests/unit/lib/errors/utils.test.ts` — logError signature changed)
+- **Knip**: 13 unused files, 8 unused deps, 125 unused exports (needs config tuning for Nuxt auto-imports)
 
 ## Test Pyramid
 
 ```
         /\
-       /  \        E2E: 11 files, ~81 tests (Playwright, 3 browsers)
+       /  \        E2E: 11 specs (Playwright, 3 browsers)
       /    \
      /------\
     /        \     Integration: 0 — gap
    /----------\
-  /            \   Unit: 30 files, ~407 tests (Vitest + Testing Library + MSW)
+  /            \   Unit: 30 files, ~382 tests (Vitest + Testing Library + MSW)
  /--------------\
-/                \ Static: ESLint (type-aware + sonarjs + tanstack-query) + TypeScript strict + Zod
+/                \ Static: ESLint (type-aware + sonarjs + tanstack-query + regexp) + TypeScript strict + Zod + Knip
 ------------------
 ```
 
-| Layer       | Tool                    | Count     | Notes                          |
-|-------------|-------------------------|-----------|--------------------------------|
-| Static      | ESLint + TypeScript     | —         | Type-aware, sonarjs, query plugin |
-| Unit        | Vitest + MSW            | ~407      | Stores, composables, components|
-| Integration | —                       | 0         | Gap between unit and E2E       |
-| E2E         | Playwright              | ~81       | 3 browser projects             |
+| Layer       | Tool                    | Count     | Notes                              |
+|-------------|-------------------------|-----------|------------------------------------|
+| Static      | ESLint + TypeScript + Knip | —      | Type-aware, sonarjs, query, regexp |
+| Unit        | Vitest + MSW            | ~382      | Stores, composables, lib, utils    |
+| Integration | —                       | 0         | Gap between unit and E2E           |
+| E2E         | Playwright              | 11 specs  | Auth, diagnostics, 3 browser prjs  |
 
 ## What Changed This Session
 
-1. **Prettier** — `.prettierrc` + `eslint-config-prettier` + lint-staged integration
-2. **@tanstack/eslint-plugin-query** — flat/recommended config for query-specific rules
-3. **eslint-plugin-sonarjs** — cognitive-complexity, no-nested-conditional, slow-regex, etc. (all warn)
-4. **jscpd** — `.jscpd.json` + `npm run duplication` script
-5. **no-console** — now `warn` in all environments (was production-only)
-6. **max-depth/max-params** — structural complexity guards (warn, threshold 4)
-7. **npm audit** — `npm run audit:security` script
+1. **jscpd threshold**: Tightened from 5% → 3% (actual 1.54%, locks in current level)
+2. **Prettier scripts**: Added `format:check` and `format:fix` npm scripts
+3. **Knip**: Installed for dead code detection (`npm run knip`)
+4. **eslint-plugin-regexp**: Added flat/recommended config, fixed 3 real regex issues
+5. **E2E concurrency**: Added concurrency group to e2e.yml
 
 ## Next Steps
 
-1. Run `npx prettier --write .` as isolated "format codebase" commit
-2. Run `quality-fix` to address 106 existing ESLint errors
-3. Run `npm run duplication` to baseline duplication level
-4. Set up CI pipeline (lint, typecheck, test, coverage, audit)
-5. Run `quality-audit` again after fixing existing issues — next round: CI setup, pre-commit typecheck, secret scanning
+1. Run `npm run format:fix` as standalone "style: format codebase" commit
+2. Fix failing test (`logError` signature changed — prefix `[ErrorUtils]` added)
+3. Tune Knip config for Nuxt auto-imports (reduce false positives)
+4. Review Knip's unused deps findings — remove confirmed unused packages
+5. Enable GitHub push protection (Settings → Code security)
+6. Add `format:check` + `test:coverage` to CI when ready
+7. Run `quality-audit` again after cleanup

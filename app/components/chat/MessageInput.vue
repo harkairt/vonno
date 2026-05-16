@@ -1,7 +1,10 @@
 <template>
   <div class="border-t border-[hsl(var(--border)/0.5)] bg-[hsl(var(--background))] flex-shrink-0">
     <div class="px-3 py-2">
-      <form class="flex flex-col gap-1" @submit.prevent="handleSubmit">
+      <form
+        class="flex flex-col gap-1"
+        @submit.prevent="handleSubmit"
+      >
         <!-- Agent Selection - only show if virtual agents exist -->
         <div
           v-if="virtualAgents.length > 0"
@@ -27,7 +30,11 @@
           class="mb-2"
         >
           <template #actions>
-            <UButton size="xs" variant="outline" @click="retryFailedMessage">
+            <UButton
+              size="xs"
+              variant="outline"
+              @click="retryFailedMessage"
+            >
               {{ t('chat.messageInput.retry') }}
             </UButton>
           </template>
@@ -90,7 +97,10 @@
         </div>
 
         <!-- Helper Text (desktop only) -->
-        <div v-if="width >= 1024" class="text-xs text-[hsl(var(--muted-foreground))]">
+        <div
+          v-if="width >= 1024"
+          class="text-xs text-[hsl(var(--muted-foreground))]"
+        >
           {{ t('chat.messageInput.pressEnterToSend') }}
         </div>
       </form>
