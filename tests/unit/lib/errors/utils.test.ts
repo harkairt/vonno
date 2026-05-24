@@ -412,10 +412,12 @@ describe('logError', () => {
     logError(error)
     // eslint-disable-next-line no-console
     expect(console.error).toHaveBeenCalledWith(
+      '[ErrorUtils]',
       'Application Error:',
       expect.objectContaining({
         code: ErrorCode.SERVER_ERROR,
         message: 'Server error',
+        statusCode: 500,
       }),
     )
   })

@@ -355,7 +355,7 @@ export function useUpdateSessionName() {
 
     // Always refetch after mutation settles to ensure server sync
     onSettled: (_, __, params) => {
-      void queryClient.invalidateQueries({ queryKey: chatQueryKeys.sessions() })
+      void queryClient.invalidateQueries({ queryKey: chatQueryKeys.sessions(), exact: true })
       void queryClient.invalidateQueries({
         queryKey: chatQueryKeys.session(params.sessionId),
       })

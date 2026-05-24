@@ -11,7 +11,6 @@
       <NuxtLayout>
         <NuxtPage :transition="{ name: 'fade' }" />
       </NuxtLayout>
-      <UNotifications />
       <AppUpdateBanner />
     </div>
   </UApp>

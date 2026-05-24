@@ -1,4 +1,4 @@
-import { ref, computed, onUnmounted, readonly, type Ref } from 'vue'
+import { ref, computed, getCurrentInstance, onUnmounted, readonly, type Ref } from 'vue'
 import { SignalRService } from '@/lib/signalr/SignalRService'
 import { SignalROperations } from '@/lib/signalr/SignalROperations'
 import type { ConnectionState, SignalRConnectionInfo } from '@/lib/signalr/types'
@@ -78,11 +78,13 @@ export function useSignalR() {
 
   const subs = subscribeToStateChanges(service, state, connectionInfo)
 
-  onUnmounted(() => {
-    subs.unsubscribeStateChange()
-    subs.unsubscribeReconnected()
-    subs.unsubscribeClosed()
-  })
+  if (getCurrentInstance()) {
+    onUnmounted(() => {
+      subs.unsubscribeStateChange()
+      subs.unsubscribeReconnected()
+      subs.unsubscribeClosed()
+    })
+  }
 
   async function connect(accessToken?: string): Promise<void> {
     const authStore = useAuthStore()
