@@ -48,6 +48,15 @@ function ensureFontLoaded(font: FontFace): void {
   loadedFonts.add(font)
 }
 
+function safeGetItem(key: string): string | null {
+  try {
+    return localStorage.getItem(key)
+  } catch {
+    // storage blocked (Safari private mode / third-party iframe) — treat as unset
+    return null
+  }
+}
+
 export function serverConfigFontSizeToPreset(px: number): FontSize {
   if (px <= 13) return 'small'
   if (px >= 16) return 'large'
@@ -78,14 +87,14 @@ export function useUiPreferences() {
     }
 
     if (fontFaceKey.value) {
-      const stored = localStorage.getItem(fontFaceKey.value)
+      const stored = safeGetItem(fontFaceKey.value)
       fontFace.value = isValidFontFace(stored) ? stored : null
     } else {
       fontFace.value = null
     }
 
     if (fontSizeKey.value) {
-      const stored = localStorage.getItem(fontSizeKey.value)
+      const stored = safeGetItem(fontSizeKey.value)
       fontSize.value = isValidFontSize(stored) ? stored : null
     } else {
       fontSize.value = null

@@ -8,7 +8,7 @@
  * (no network) and redirects via the global navigateTo stub.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { screen, fireEvent, waitFor } from '@testing-library/vue'
+import { screen, fireEvent, waitFor, within } from '@testing-library/vue'
 import { reactive } from 'vue'
 import type { Component } from 'vue'
 import { renderWithProviders } from '@/tests/utils/render'
@@ -34,6 +34,23 @@ const stubs = {
   UButton: {
     props: ['loading'],
     template: '<button v-bind="$attrs" @click="$emit(\'click\')"><slot /></button>',
+  },
+  UTabs: {
+    props: ['modelValue', 'items'],
+    emits: ['update:modelValue'],
+    template: `
+      <div>
+        <button
+          v-for="item in items"
+          :key="item.value"
+          type="button"
+          :data-testid="'font-face-option-' + item.value"
+          @click="$emit('update:modelValue', item.value)"
+        >
+          {{ item.label }}
+        </button>
+      </div>
+    `,
   },
 }
 
@@ -89,6 +106,44 @@ describe('profile page', () => {
     fake.setState('reconnecting')
 
     await waitFor(() => expect(status.textContent).toContain('Reconnecting'))
+  })
+
+  it('persists the chosen chat font face under the per-user storage key', async () => {
+    seedAuthStorage({ user: makeUser({ id: 501 }) })
+    installFakeSignalR()
+
+    renderPage()
+
+    await fireEvent.click(await screen.findByTestId('font-face-option-rubik'))
+
+    expect(localStorage.getItem('innochat_ui_preferred_font_face_501')).toBe('rubik')
+  })
+
+  it('persists the chosen chat font size under the per-user storage key', async () => {
+    seedAuthStorage({ user: makeUser({ id: 501 }) })
+    installFakeSignalR()
+
+    renderPage()
+
+    const sizeRow = await screen.findByTestId('profile-font-size')
+    const [, , large] = within(sizeRow).getAllByRole('button')
+    await fireEvent.click(large!)
+
+    expect(localStorage.getItem('innochat_ui_preferred_font_size_501')).toBe('large')
+  })
+
+  it('renders the build version and a formatted build timestamp', async () => {
+    seedAuthStorage({ user: makeUser() })
+    installFakeSignalR()
+    vi.mocked(useRuntimeConfig).mockReturnValue({
+      public: { buildVersion: '1.4.2', buildTimestamp: '2026-08-26T09:30:00' },
+    } as unknown as ReturnType<typeof useRuntimeConfig>)
+
+    renderPage()
+
+    const buildInfo = await screen.findByTestId('profile-build-info')
+    expect(buildInfo.textContent).toContain('1.4.2')
+    expect(buildInfo.textContent).toContain('2026-08-26, 09:30')
   })
 
   it('logs out and redirects to /login when the logout button is clicked', async () => {

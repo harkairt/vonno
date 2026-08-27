@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
-const MAX_JSON_SIZE = 50_000
-const MAX_ROWS = 500
+const MAX_JSON_SIZE = 1_000_000
+const MAX_ROWS = 5000
 const MAX_COLUMNS = 50
 
 export const columnTypeSchema = z.enum(['number', 'string', 'date', 'boolean'])

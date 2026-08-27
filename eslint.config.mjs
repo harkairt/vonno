@@ -95,6 +95,36 @@ export default withNuxt(
       'sonarjs/cognitive-complexity': 'off',
       'sonarjs/no-identical-functions': 'off',
       '@typescript-eslint/no-dynamic-delete': 'off',
+      'no-restricted-properties': [
+        'error',
+        {
+          object: 'describe',
+          property: 'only',
+          message:
+            'Focused tests must not be committed — they silently skip the rest of the suite.',
+        },
+        {
+          object: 'it',
+          property: 'only',
+          message:
+            'Focused tests must not be committed — they silently skip the rest of the suite.',
+        },
+        {
+          object: 'test',
+          property: 'only',
+          message:
+            'Focused tests must not be committed — they silently skip the rest of the suite.',
+        },
+      ],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            'CallExpression[callee.object.name="vi"][callee.property.name="mock"][arguments.0.value="@/lib/api/client"]',
+          message:
+            'Do not mock apiClient — mock at the MSW network boundary instead (see .claude/skills/innochat-testing).',
+        },
+      ],
     },
   },
   eslintConfigPrettier,

@@ -30,6 +30,9 @@ export default defineConfig({
     environment: 'happy-dom',
     restoreMocks: true,
     unstubEnvs: true,
+    // Uncapped, the fork pool spawns one happy-dom process per core (18 on the
+    // primary dev machine) and exhausts RAM; 4 forks run the suite in ~25s.
+    maxWorkers: 4,
 
     expect: {
       requireAssertions: true,
@@ -56,13 +59,18 @@ export default defineConfig({
       NUXT_PUBLIC_API_BASE_URL: 'http://localhost:3000',
     },
     environmentOptions: {
-      happyDOM: { url: 'http://localhost:3000' }, // make origin explicit, don't rely on default
+      happyDOM: {
+        url: 'http://localhost:3000', // make origin explicit, don't rely on default
+        // Stylesheet <link>s (e.g. Google Fonts injected by useUiPreferences) must
+        // never fetch from the real network in unit tests.
+        settings: { disableCSSFileLoading: true, handleDisabledFileLoadingAsSuccess: true },
+      },
     },
 
     // Coverage configuration
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json', 'html'],
+      reporter: ['text', 'json', 'html', 'json-summary'],
       include: [
         'lib/**/*.{js,ts}',
         'app/stores/**/*.{js,ts}',
@@ -115,10 +123,14 @@ export default defineConfig({
         // 001-echarts-code-blocks (2026-08-05) — ECharts validation, composable,
         // component and store suites. floor(actual − 2): branches 85.56→83,
         // functions 79.09→77, lines/statements 85.30→83.
-        branches: 83,
-        functions: 77,
-        lines: 83,
-        statements: 83,
+        // Coverage backfill (2026-08-26) — auth/UI-preference/file-preview/
+        // message-focus/xlsx/chat-action composable suites, viewer download hook,
+        // profile page handlers, pure-logic lib suites. floor(actual − 2):
+        // branches 86.65→84, functions 81.80→79, lines/statements 88.37→86.
+        branches: 84,
+        functions: 79,
+        lines: 86,
+        statements: 86,
         // Wave B1 per-glob ratchet — floor(actual − 2). The interceptor chain and
         // most services are now driven end-to-end through MSW. lib/api/services is
         // held lower because LogService's specialized logging methods are out of
@@ -131,19 +143,21 @@ export default defineConfig({
           lines: 92,
           statements: 92,
         },
+        // Backfill (2026-08-26): the useAuth suite drives the forgotten/set-password
+        // and profile service paths through MSW; floor(actual − 2).
         'lib/api/services/**': {
-          branches: 83,
-          functions: 73,
-          lines: 68,
-          statements: 68,
+          branches: 88,
+          functions: 75,
+          lines: 70,
+          statements: 70,
         },
         // Wave B2 per-glob ratchet — floor(actual − 2). SignalRService is driven
         // through a mocked @microsoft/signalr; SignalROperations vs a stub.
         'lib/signalr/**': {
           branches: 88,
           functions: 98,
-          lines: 93,
-          statements: 93,
+          lines: 94,
+          statements: 94,
         },
         // Wave B2 bumped useSignalR/useSignalRChat via installFakeSignalR; Wave B3
         // added usePublicMode/usePublicChatAgent/useConfig. Wave B4 covered the
@@ -153,11 +167,13 @@ export default defineConfig({
         // (actual 80.85 → floor 78, but never lowered below the prior 80).
         // Phase 4 (2026-07-08): useRelativeDate frozen-clock buckets +
         // groupMessages date boundaries; floor(actual − 2), branches held at 80.
+        // Backfill (2026-08-26): auth/ui-prefs/file-preview/message-focus/xlsx/
+        // chat-actions suites; floor(actual − 2).
         'app/composables/**': {
-          branches: 84,
-          functions: 82,
-          lines: 79,
-          statements: 79,
+          branches: 85,
+          functions: 87,
+          lines: 85,
+          statements: 85,
         },
         // Wave B3 per-glob ratchet — floor(actual − 2). config-init/public-auth/
         // vue-query/pinia-persistence/buffer/viewer driven via setup() + MSW; the
@@ -165,11 +181,12 @@ export default defineConfig({
         // which land in a later wave.
         // Phase 4 (2026-07-08): api-interceptors.client + ssr-width plugins now
         // covered (the two files B3 deferred); floor(actual − 2).
+        // Backfill (2026-08-26): viewer download hook fully covered; floor(actual − 2).
         'app/plugins/**': {
-          branches: 69,
-          functions: 81,
-          lines: 86,
-          statements: 86,
+          branches: 80,
+          functions: 98,
+          lines: 96,
+          statements: 96,
         },
         // Wave B5 per-glob ratchet — floor(actual − 2). SFC coverage verified
         // stable across two identical runs (v8 .vue line-mapping did not jitter),
@@ -178,21 +195,25 @@ export default defineConfig({
         // ManageSessionUsers, OptionsMessage) whose full backfill is out of B5 scope.
         // Phase 4 (2026-07-08): ChatListPanel sessionStorage guards nudged
         // component coverage up; floor(actual − 2).
+        // Backfill (2026-08-26): incidental lift from the composable/page suites;
+        // floor(actual − 2), functions held at 60 (floor(62.13 − 2) = 60).
         'app/components/**': {
-          branches: 78,
+          branches: 79,
           functions: 60,
-          lines: 82,
-          statements: 82,
+          lines: 85,
+          statements: 85,
         },
         // Wave B6 per-glob ratchet — floor(actual − 2). Pages rendered as
         // components via renderWithProviders + MSW; the plan's ≈80% lines target
         // is met (82.50% → floor 80). Functions held down by visual/layout
         // branches and page methods pragmatically excluded from B6 scope.
+        // Backfill (2026-08-26): profile font-preference + build-info handlers;
+        // floor(actual − 2).
         'app/pages/**': {
           branches: 76,
-          functions: 36,
-          lines: 83,
-          statements: 83,
+          functions: 37,
+          lines: 86,
+          statements: 86,
         },
         // Wave B6 per-glob ratchet — floor(actual − 2). auth.global.ts fully
         // driven by the public/private route matrix (100% lines/functions,
