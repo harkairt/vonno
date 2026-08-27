@@ -27,7 +27,7 @@ export interface BarRaceRejection {
   reason: BarRaceRejectionReason
 }
 
-const MAX_JSON_SIZE = 500_000
+const MAX_JSON_SIZE = 1_000_000
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
