@@ -204,7 +204,7 @@
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import type { PreviewedFile, PreviewFileType } from '@/types/filePreview'
 import { getPreviewFileType } from '@/types/filePreview'
-import { sanitizeFileUrl } from '@/app/utils/url'
+import { proxiedFileUrl, sanitizeFileUrl } from '@/app/utils/url'
 import { fileTypeIcon } from '@/app/utils/fileIcon'
 import MarkdownContent from '@/app/components/chat/MarkdownContent.vue'
 
@@ -251,21 +251,7 @@ const proxiedActiveUrl = computed(() => {
 })
 
 function proxiedUrl(url: string): string {
-  if (url.startsWith('/') && !url.startsWith('//')) return url
-
-  const resolvedUrl = sanitizeFileUrl(url, apiBaseUrl as string)
-  if (!resolvedUrl) return ''
-
-  try {
-    const parsedUrl = new URL(resolvedUrl)
-    if (parsedUrl.pathname.startsWith('/api/') || parsedUrl.pathname.startsWith('/assets/')) {
-      return `${parsedUrl.pathname}${parsedUrl.search}${parsedUrl.hash}`
-    }
-  } catch {
-    /* sanitizeFileUrl already rejects malformed URLs */
-  }
-
-  return resolvedUrl
+  return proxiedFileUrl(url, apiBaseUrl as string)
 }
 
 function resolveUrl(url: string): string {

@@ -71,7 +71,7 @@
             <button
               class="text-[hsl(var(--muted-foreground)/0.5)] hover:text-[hsl(var(--muted-foreground))] transition-colors p-0.5 rounded"
               :aria-label="t('chat.messages.copyMessage')"
-              @click="handleCopy(message.messageID, message.messageText)"
+              @click="handleCopy(message, getSelectedAnswer(message))"
             >
               <UIcon
                 :name="

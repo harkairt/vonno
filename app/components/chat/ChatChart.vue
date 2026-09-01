@@ -1,5 +1,12 @@
 <template>
-  <div class="chart-container">
+  <div
+    ref="wrapperRef"
+    class="chart-container"
+  >
+    <ChartCopyButton
+      :container-ref="wrapperRef"
+      :hidden="isLoading || !!error"
+    />
     <div
       v-if="isLoading"
       class="chart-loading"
@@ -24,6 +31,7 @@ import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import type { Chart } from 'chart.js'
 import { useChartJs } from '~/composables/useChartJs'
 import type { ChartConfig } from '@/lib/validation/chart'
+import ChartCopyButton from '~/components/chat/ChartCopyButton.vue'
 
 interface Props {
   config: ChartConfig
@@ -33,6 +41,7 @@ const props = defineProps<Props>()
 
 const { isLoading, isLoaded, loadChartJs, renderChart } = useChartJs()
 
+const wrapperRef = ref<HTMLElement | null>(null)
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const error = ref<string | null>(null)
 let chartInstance: Chart | null = null

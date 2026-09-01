@@ -8,6 +8,7 @@
       :src="imgSrc"
       :data-source="interactive ? fullResUrl : undefined"
       :alt="sanitizedFileName"
+      :data-file-image="copySrc"
       class="w-full h-auto object-cover"
       loading="lazy"
       :aria-label="t('chat.messages.viewImage')"
@@ -109,7 +110,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import type { ReceivedFile } from '@/types/api/schemas'
-import { sanitizeFileUrl } from '@/app/utils/url'
+import { proxiedFileUrl, sanitizeFileUrl } from '@/app/utils/url'
 import { fileTypeIcon } from '@/app/utils/fileIcon'
 import { isPreviewableFile } from '@/types/filePreview'
 
@@ -145,6 +146,11 @@ const thumbnailUrl = computed(() => {
 })
 
 const imgSrc = computed(() => thumbnailUrl.value || fullResUrl.value)
+
+const copySrc = computed(() => {
+  const raw = thumbnailUrl.value ? props.file.thumbnailUrl! : props.file.url
+  return proxiedFileUrl(raw, apiBaseUrl as string)
+})
 
 const isImage = computed(() => props.file.mimeType.startsWith('image/'))
 

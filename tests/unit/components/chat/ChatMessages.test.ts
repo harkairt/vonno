@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/vue'
+import { fireEvent, render, screen, waitFor } from '@testing-library/vue'
 import type { Component } from 'vue'
 import type { AISessionMessageDTO } from '@/types/api/schemas'
 import { useFakeTimersSafe, advance, useRealTimers } from '@/tests/utils/timers'
@@ -128,6 +128,172 @@ describe('ChatMessages — message rendering', () => {
     expect(screen.getByText('First')).toBeTruthy()
     expect(screen.getByText('Second')).toBeTruthy()
     expect(screen.getByText('Third')).toBeTruthy()
+  })
+
+  it('copies only the text of a file message, not the JSON payload', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText } })
+    try {
+      const payload = JSON.stringify({
+        text: 'here is the report',
+        files: [{ id: 'f1', fileName: 'report.pdf', mimeType: 'application/pdf', url: '/f1' }],
+      })
+      await renderMessages({ messages: [makeMessage({ messageType: 16, messageText: payload })] })
+
+      await fireEvent.click(screen.getByRole('button', { name: 'chat.messages.copyMessage' }))
+
+      await waitFor(() => expect(writeText).toHaveBeenCalledWith('here is the report'))
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('copies an options message as its prompt plus a marked option list', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText } })
+    try {
+      const payload = JSON.stringify({
+        Text: 'Pick a colour',
+        MultiSelectEnabled: false,
+        Items: [
+          { Key: '1', Value: 'Red' },
+          { Key: '2', Value: 'Blue' },
+        ],
+      })
+      await renderMessages({
+        messages: [
+          makeMessage({ messageID: 'opt', messageType: 4, messageText: payload }),
+          makeMessage({ messageText: 'Blue', senderUserCode: mockUser.email }),
+        ],
+      })
+
+      const buttons = screen.getAllByRole('button', { name: 'chat.messages.copyMessage' })
+      await fireEvent.click(buttons[0]!)
+
+      await waitFor(() => expect(writeText).toHaveBeenCalledWith('Pick a colour\n\n ○ Red\n● Blue'))
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('marks every chosen option of a multi-select answer and appends free text', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText } })
+    try {
+      const payload = JSON.stringify({
+        Text: 'Toppings?',
+        MultiSelectEnabled: true,
+        IsPlainTextEnabled: true,
+        Items: [
+          { Key: '1', Value: 'Cheese' },
+          { Key: '2', Value: 'Ham' },
+          { Key: '3', Value: 'Olives' },
+        ],
+      })
+      await renderMessages({
+        messages: [
+          makeMessage({ messageID: 'opt', messageType: 4, messageText: payload }),
+          makeMessage({
+            messageText: 'Cheese, Olives, extra sauce',
+            senderUserCode: mockUser.email,
+          }),
+        ],
+      })
+
+      const buttons = screen.getAllByRole('button', { name: 'chat.messages.copyMessage' })
+      await fireEvent.click(buttons[0]!)
+
+      await waitFor(() =>
+        expect(writeText).toHaveBeenCalledWith(
+          'Toppings?\n\n ● Cheese\n○ Ham\n● Olives\n● extra sauce',
+        ),
+      )
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('copies the rendered image thumbnail of an image-only file message', async () => {
+    const write = vi.fn().mockResolvedValue(undefined)
+    class FakeClipboardItem {
+      constructor(public parts: Record<string, Blob>) {}
+    }
+    vi.stubGlobal('ClipboardItem', FakeClipboardItem)
+    vi.stubGlobal('navigator', { ...navigator, clipboard: { write } })
+    vi.spyOn(HTMLImageElement.prototype, 'complete', 'get').mockReturnValue(true)
+    vi.spyOn(HTMLImageElement.prototype, 'naturalWidth', 'get').mockReturnValue(4)
+    vi.spyOn(HTMLImageElement.prototype, 'naturalHeight', 'get').mockReturnValue(3)
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
+      drawImage: vi.fn(),
+    } as unknown as CanvasRenderingContext2D)
+    vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue('data:image/png;base64,IMG')
+    try {
+      const payload = JSON.stringify({
+        text: '',
+        files: [{ id: 'img', fileName: 'photo.png', mimeType: 'image/png', url: '/img' }],
+      })
+      await renderMessages({ messages: [makeMessage({ messageType: 16, messageText: payload })] })
+
+      await fireEvent.click(screen.getByRole('button', { name: 'chat.messages.copyMessage' }))
+
+      await waitFor(() => expect(write).toHaveBeenCalledTimes(1))
+      const [items] = write.mock.calls[0] as [FakeClipboardItem[]]
+      const item = items[0]!
+      expect(Object.keys(item.parts)).toEqual(['text/html'])
+      expect(await item.parts['text/html']!.text()).toContain('src="data:image/png;base64,IMG"')
+    } finally {
+      vi.unstubAllGlobals()
+      vi.restoreAllMocks()
+    }
+  })
+
+  it('fetches the thumbnail through its proxied URL when the canvas export is blocked', async () => {
+    const write = vi.fn().mockResolvedValue(undefined)
+    class FakeClipboardItem {
+      constructor(public parts: Record<string, Blob>) {}
+    }
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(new Blob(['png-bytes'], { type: 'image/png' }), { status: 200 }),
+      )
+    vi.stubGlobal('ClipboardItem', FakeClipboardItem)
+    vi.stubGlobal('navigator', { ...navigator, clipboard: { write } })
+    vi.stubGlobal('fetch', fetchMock)
+    vi.spyOn(HTMLImageElement.prototype, 'complete', 'get').mockReturnValue(true)
+    vi.spyOn(HTMLImageElement.prototype, 'naturalWidth', 'get').mockReturnValue(4)
+    vi.spyOn(HTMLImageElement.prototype, 'naturalHeight', 'get').mockReturnValue(3)
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
+      drawImage: vi.fn(),
+    } as unknown as CanvasRenderingContext2D)
+    vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockImplementation(() => {
+      throw new DOMException('Tainted canvases may not be exported.', 'SecurityError')
+    })
+    try {
+      const payload = JSON.stringify({
+        text: '',
+        files: [
+          {
+            id: 'img',
+            fileName: 'photo.png',
+            mimeType: 'image/png',
+            url: '/api/storage/photo.png',
+          },
+        ],
+      })
+      await renderMessages({ messages: [makeMessage({ messageType: 16, messageText: payload })] })
+
+      await fireEvent.click(screen.getByRole('button', { name: 'chat.messages.copyMessage' }))
+
+      await waitFor(() => expect(write).toHaveBeenCalledTimes(1))
+      expect(fetchMock).toHaveBeenCalledWith('/api/storage/photo.png')
+      const [items] = write.mock.calls[0] as [FakeClipboardItem[]]
+      const html = await items[0]!.parts['text/html']!.text()
+      expect(html).toContain('src="data:image/png;base64,')
+    } finally {
+      vi.unstubAllGlobals()
+      vi.restoreAllMocks()
+    }
   })
 
   it('keeps the action-bar space but hides its controls for a pending message', async () => {

@@ -108,6 +108,7 @@
             :key="user.id"
             :user="user"
             :favorite="isFavorite(user.id)"
+            :has-primary-session="userHasPrimarySession(user.id)"
             @toggle-favorite="toggleFavorite(user.id)"
             @open-conversation="onUserClick(user.id)"
           />
@@ -171,8 +172,14 @@ watch(activeFilter, (value) => {
   }
 })
 
-const { filteredUsers, isLoadingUsers, usersError, userSearchQuery, handleUserClick } =
-  useChatListData()
+const {
+  filteredUsers,
+  isLoadingUsers,
+  usersError,
+  userSearchQuery,
+  handleUserClick,
+  userHasPrimarySession,
+} = useChatListData()
 const { favoriteIds, isFavorite, toggleFavorite } = useUserFavorites()
 
 const filters = computed<Array<{ value: DirectoryFilter; label: string }>>(() => [

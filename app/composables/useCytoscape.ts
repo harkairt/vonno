@@ -105,7 +105,7 @@ export const useCytoscape = () => {
       layout: (config.layout as cytoscape.LayoutOptions) ?? { name: 'cose' },
       style: buildStyle(config.style, isDark),
       userPanningEnabled: true,
-      userZoomingEnabled: true,
+      userZoomingEnabled: false,
       boxSelectionEnabled: false,
       autoungrabify: true,
     })

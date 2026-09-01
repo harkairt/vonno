@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { sanitizeFileUrl } from '@/app/utils/url'
+import { proxiedFileUrl, sanitizeFileUrl } from '@/app/utils/url'
 
 describe('sanitizeFileUrl', () => {
   it('accepts relative paths starting with /', () => {
@@ -65,5 +65,41 @@ describe('sanitizeFileUrl', () => {
     it('leaves root-relative path unchanged when apiBaseUrl is empty', () => {
       expect(sanitizeFileUrl('/api/storage/file.png', '')).toBe('/api/storage/file.png')
     })
+  })
+})
+
+describe('proxiedFileUrl', () => {
+  it('keeps root-relative paths same-origin even when apiBaseUrl is set', () => {
+    expect(proxiedFileUrl('/api/storage/file.png', 'http://172.22.4.22:8082')).toBe(
+      '/api/storage/file.png',
+    )
+  })
+
+  it('rewrites absolute API URLs to their same-origin path', () => {
+    expect(proxiedFileUrl('http://172.22.4.22:8082/api/storage/file.png?v=2#x')).toBe(
+      '/api/storage/file.png?v=2#x',
+    )
+  })
+
+  it('rewrites absolute /assets URLs to their same-origin path', () => {
+    expect(proxiedFileUrl('https://backend.example.com/assets/thumbs/1.png')).toBe(
+      '/assets/thumbs/1.png',
+    )
+  })
+
+  it('leaves absolute URLs outside the proxied prefixes untouched', () => {
+    expect(proxiedFileUrl('https://cdn.example.com/file.png')).toBe(
+      'https://cdn.example.com/file.png',
+    )
+  })
+
+  it('leaves blob URLs untouched', () => {
+    const blobUrl = 'blob:https://app.example.com/12345678-1234-1234-1234-123456789abc'
+    expect(proxiedFileUrl(blobUrl)).toBe(blobUrl)
+  })
+
+  it('returns empty string for unsafe URLs', () => {
+    expect(proxiedFileUrl('javascript:alert(1)')).toBe('')
+    expect(proxiedFileUrl('//evil.com/file.png')).toBe('')
   })
 })

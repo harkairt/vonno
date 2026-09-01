@@ -94,6 +94,10 @@
   opacity: 0.8;
 }
 
+.own-message .markdown-content a {
+  color: inherit;
+}
+
 /* Lists - compact spacing */
 .markdown-content ul,
 .markdown-content ol {

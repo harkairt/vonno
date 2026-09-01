@@ -1,5 +1,9 @@
 <template>
   <div class="bar-race-container">
+    <ChartCopyButton
+      :container-ref="containerRef"
+      :hidden="showLoading || !!error"
+    />
     <div
       v-if="showLoading"
       class="bar-race-loading"
@@ -46,6 +50,7 @@ import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useResizeObserver } from '@vueuse/core'
 import { useECharts, type EChartsInstance } from '~/composables/useECharts'
+import ChartCopyButton from '~/components/chat/ChartCopyButton.vue'
 import type { BarRaceData } from '@/lib/validation/barRace'
 import {
   buildBarRaceOption,
@@ -215,6 +220,7 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .bar-race-container {
+  position: relative;
   width: 100%;
   margin: 1rem 0;
 }

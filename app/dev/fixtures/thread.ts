@@ -323,11 +323,42 @@ const activeOptionMessage = agentMessage(
   AIAnswerType.Options,
 )
 
+const fileMessages = [
+  agentMessage(
+    'intro-file',
+    at(0, 11, 30),
+    '## File\n\nNow I am showing file messages with image and document attachments.',
+  ),
+  agentMessage(
+    'fixture-file-image',
+    at(0, 11, 31),
+    JSON.stringify({
+      text: 'Here is the palette you asked for.',
+      files: [
+        {
+          id: 'gallery-file-1',
+          fileName: 'app-icon.png',
+          mimeType: 'image/png',
+          url: '/icons/icon-192x192.png',
+        },
+        {
+          id: 'gallery-file-2',
+          fileName: 'report.pdf',
+          mimeType: 'application/pdf',
+          url: '/api/storage/report.pdf',
+        },
+      ],
+    }),
+    AIAnswerType.File,
+  ),
+]
+
 export const threadMessages: AISessionMessageDTO[] = [
   ...conversationMessages,
   ...fixtureMessages,
   ...optionMessages,
   activeOptionMessage,
+  ...fileMessages,
 ]
 
 export const gallerySession: AISessionDTO = {

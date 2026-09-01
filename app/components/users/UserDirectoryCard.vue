@@ -67,7 +67,11 @@
         class="size-4"
         aria-hidden="true"
       />
-      {{ t('users.openConversation') }}
+      {{
+        !props.user.isVirtual && props.hasPrimarySession
+          ? t('users.openConversation')
+          : t('users.startNewConversation')
+      }}
     </button>
   </article>
 </template>
@@ -80,6 +84,7 @@ import { getInitials, getAvatarStyle, hasAvatar } from '@/app/utils/user'
 const props = defineProps<{
   user: UserDTO
   favorite: boolean
+  hasPrimarySession: boolean
 }>()
 
 const emit = defineEmits<{

@@ -1,5 +1,14 @@
 <template>
-  <div class="cytoscape-container">
+  <div
+    ref="outerRef"
+    class="cytoscape-container"
+  >
+    <ChartCopyButton
+      :container-ref="wrapperRef"
+      :hover-ref="outerRef"
+      :hidden="showLoading || !!error"
+      :capture-override="captureCytoscape"
+    />
     <div
       v-if="showLoading"
       class="cytoscape-loading"
@@ -14,6 +23,7 @@
     </div>
     <div
       v-show="!showLoading && !error"
+      ref="wrapperRef"
       class="cytoscape-wrapper"
     >
       <div
@@ -37,6 +47,7 @@ import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useDebounceFn, useResizeObserver } from '@vueuse/core'
 import { useCytoscape, type CytoscapeInstance } from '~/composables/useCytoscape'
+import ChartCopyButton from '~/components/chat/ChartCopyButton.vue'
 import type { CytoscapeConfig } from '@/lib/validation/cytoscape'
 
 interface Props {
@@ -51,6 +62,8 @@ const { t } = useI18n()
 const colorMode = useColorMode()
 const { isLoaded, loadCytoscape, initGraph, applyConfig } = useCytoscape()
 
+const outerRef = ref<HTMLElement | null>(null)
+const wrapperRef = ref<HTMLElement | null>(null)
 const containerRef = ref<HTMLElement | null>(null)
 const error = ref<string | null>(null)
 let instance: CytoscapeInstance | null = null
@@ -61,6 +74,17 @@ const showLoading = computed(() => !isLoaded.value && !error.value)
 const resetView = () => {
   if (!instance) return
   instance.fit()
+}
+
+const captureCytoscape = async (): Promise<Blob | null> => {
+  if (!instance) return null
+  const dataUrl = instance.png({ output: 'base64uri', bg: '#ffffff', scale: 2, full: true })
+  const base64 = dataUrl.split(',')[1]
+  if (!base64) return null
+  const binary = atob(base64)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+  return new Blob([bytes], { type: 'image/png' })
 }
 
 const applyCurrent = () => {
@@ -139,6 +163,7 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .cytoscape-container {
+  position: relative;
   width: 100%;
   margin: 1rem 0;
 }
