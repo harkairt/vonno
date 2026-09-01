@@ -260,6 +260,22 @@ export function parseOptionsPayload(
   }
 }
 
+export function parseFileMessagePayload(
+  messageText: string | null | undefined,
+): FileMessagePayload | null {
+  if (!messageText) return null
+  try {
+    let parsed: unknown = messageText
+    for (let i = 0; i < 5 && typeof parsed === 'string'; i++) {
+      parsed = JSON.parse(parsed)
+    }
+    const result = FileMessagePayloadSchema.safeParse(parsed)
+    return result.success ? result.data : null
+  } catch {
+    return null
+  }
+}
+
 export const AISessionMessageDTOSchema = z.object({
   isRated: z.boolean(),
   messageID: z.string(),

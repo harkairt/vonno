@@ -4,7 +4,7 @@
     :class="[
       fullWidth ? 'w-full max-w-full' : wide ? 'max-w-full' : maxWidthClass,
       {
-        'rounded-br-md': isOwn,
+        'own-message rounded-br-md': isOwn,
         'rounded-bl-md': !isOwn,
       },
     ]"

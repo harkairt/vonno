@@ -1,5 +1,12 @@
 <template>
-  <div class="mermaid-container">
+  <div
+    ref="wrapperRef"
+    class="mermaid-container"
+  >
+    <ChartCopyButton
+      :container-ref="wrapperRef"
+      :hidden="showLoading || !!error"
+    />
     <div
       v-if="showLoading"
       class="mermaid-loading"
@@ -36,6 +43,7 @@ import { computed, ref, watch, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { api as viewerApi } from 'v-viewer'
 import { useMermaid } from '~/composables/useMermaid'
+import ChartCopyButton from '~/components/chat/ChartCopyButton.vue'
 import type { MermaidData } from '@/lib/validation/mermaid'
 
 interface Props {
@@ -50,6 +58,7 @@ const { t } = useI18n()
 const colorMode = useColorMode()
 const { isLoaded, loadMermaid, renderMermaid } = useMermaid()
 
+const wrapperRef = ref<HTMLElement | null>(null)
 const svg = ref<string | null>(null)
 const error = ref<string | null>(null)
 const isLightboxOpen = ref(false)
@@ -146,6 +155,7 @@ onMounted(async () => {
 
 <style scoped>
 .mermaid-container {
+  position: relative;
   width: 100%;
   margin: 1rem 0;
 }

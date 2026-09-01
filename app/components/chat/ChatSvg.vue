@@ -1,5 +1,12 @@
 <template>
-  <div class="svg-container">
+  <div
+    ref="wrapperRef"
+    class="svg-container"
+  >
+    <ChartCopyButton
+      :container-ref="wrapperRef"
+      :hidden="isLoading || !!error"
+    />
     <div
       v-if="isLoading"
       class="svg-loading"
@@ -27,6 +34,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import ChartCopyButton from '~/components/chat/ChartCopyButton.vue'
 import type { SvgData } from '@/lib/validation/svg'
 import { createLogger } from '@/lib/utils/logger'
 
@@ -41,6 +49,7 @@ const props = defineProps<Props>()
 const { t } = useI18n()
 const logger = createLogger('ChatSvg')
 
+const wrapperRef = ref<HTMLElement | null>(null)
 const isLoading = ref(true)
 const error = ref<string | null>(null)
 
@@ -74,6 +83,7 @@ watch(
 
 <style scoped>
 .svg-container {
+  position: relative;
   width: 100%;
   margin: 1rem 0;
 }

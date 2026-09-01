@@ -294,6 +294,50 @@ describe('useChatListData participant type filtering', () => {
     filters.participantType.value = 'ai'
     expect(result.filteredSessions.value.map((s) => s.sessionId)).toEqual(['ai-chat'])
   })
+
+  it('matches sessions by member display name', async () => {
+    sessionsRef.value = [
+      makeSessionWithMember('alice-chat', 'alice@example.com', false),
+      makeSessionWithMember('bob-chat', 'bob@example.com', true),
+    ]
+    sessionsRef.value[0].sessionName = 'Session A'
+    sessionsRef.value[1].sessionName = 'Session B'
+
+    const { useChatListData } = await import('~/composables/useChatListData')
+    const result = useChatListData()
+
+    result.sessionSearchQuery.value = 'alice@example.com'
+    expect(result.filteredSessions.value.map((s) => s.sessionId)).toEqual(['alice-chat'])
+  })
+
+  it('matches sessions by memberDetails name (agent name search)', async () => {
+    sessionsRef.value = [
+      makeSession({
+        sessionId: 'ksh-chat',
+        sessionName: 'Generic Session',
+        members: ['me@example.com', 'agent@example.com'],
+        memberDetails: [
+          { email: 'me@example.com', name: 'Me', isVirtual: false },
+          { email: 'agent@example.com', name: 'KSH Agent', isVirtual: true },
+        ],
+      }),
+      makeSession({
+        sessionId: 'other-chat',
+        sessionName: 'Other Session',
+        members: ['me@example.com', 'other@example.com'],
+        memberDetails: [
+          { email: 'me@example.com', name: 'Me', isVirtual: false },
+          { email: 'other@example.com', name: 'Weather Bot', isVirtual: true },
+        ],
+      }),
+    ]
+
+    const { useChatListData } = await import('~/composables/useChatListData')
+    const result = useChatListData()
+
+    result.sessionSearchQuery.value = 'KSH'
+    expect(result.filteredSessions.value.map((s) => s.sessionId)).toEqual(['ksh-chat'])
+  })
 })
 
 describe('useChatListData unread filtering', () => {

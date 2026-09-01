@@ -174,7 +174,11 @@ export const useLeaflet = () => {
 
     try {
       const map = L.map(el, { attributionControl: true })
-      L.tileLayer(TILE_URL, { attribution: TILE_ATTRIBUTION, maxZoom: 19 }).addTo(map)
+      L.tileLayer(TILE_URL, {
+        attribution: TILE_ATTRIBUTION,
+        maxZoom: 19,
+        crossOrigin: true,
+      }).addTo(map)
 
       const allBounds = await addFeatures(L, map, data)
 

@@ -44,7 +44,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { ReceivedFile } from '@/types/api/schemas'
-import { FileMessagePayloadSchema } from '@/types/api/schemas'
+import { parseFileMessagePayload } from '@/types/api/schemas'
 import MarkdownContent from '@/app/components/chat/MarkdownContent.vue'
 import FileEntry from '@/app/components/chat/FileEntry.vue'
 
@@ -60,19 +60,7 @@ const emit = defineEmits<{
   previewFile: [file: ReceivedFile]
 }>()
 
-const payload = computed(() => {
-  if (!props.messageText) return null
-  try {
-    let parsed: unknown = props.messageText
-    for (let i = 0; i < 5 && typeof parsed === 'string'; i++) {
-      parsed = JSON.parse(parsed)
-    }
-    const result = FileMessagePayloadSchema.safeParse(parsed)
-    return result.success ? result.data : null
-  } catch {
-    return null
-  }
-})
+const payload = computed(() => parseFileMessagePayload(props.messageText))
 
 const imageFiles = computed(
   () => payload.value?.files.filter((f) => f.mimeType.startsWith('image/')) ?? [],

@@ -1,6 +1,9 @@
 import { computed, ref, type CSSProperties } from 'vue'
-import type { AISessionMessageDTO } from '@/types/api/schemas'
+import type { AISessionMessageDTO, OptionsMessagePayload } from '@/types/api/schemas'
+import { parseFileMessagePayload, parseOptionsPayload } from '@/types/api/schemas'
+import { AIAnswerType } from '@/types/enums'
 import { useAuthStore } from '@/app/stores/auth'
+import { restoreMultiSelectAnswer } from '@/app/utils/optionAnswer'
 import { useClipboard } from '@vueuse/core'
 import {
   useUiPreferences,
@@ -8,6 +11,8 @@ import {
   FONT_SIZE_OPTIONS,
   DEFAULT_FONT_FACE,
 } from '~/composables/useUiPreferences'
+import { copyMessageRich } from '@/lib/clipboard/messageCopy'
+import { useMarkdown } from '~/composables/useMarkdown'
 
 // bold/italic from server config intentionally suppressed — local UI prefs are replacing server-driven styling
 const baseOwnMessageStyle: CSSProperties = {
@@ -32,6 +37,53 @@ const basePartnerMessageStyle: CSSProperties = {
   borderStyle: 'var(--config-message-border-style)' as CSSProperties['borderStyle'],
   borderRadius: 'var(--config-message-border-radius)',
   color: 'hsl(var(--foreground))',
+}
+
+type CopyableMessage = Pick<AISessionMessageDTO, 'messageID' | 'messageText' | 'messageType'>
+
+function optionsCopyText(payload: OptionsMessagePayload, selectedAnswer?: string): string {
+  const values = payload.Items.map((item) => item.Value)
+  let selected: string[] = []
+  let custom: string[] = []
+  if (selectedAnswer) {
+    if (payload.MultiSelectEnabled) {
+      const restored = restoreMultiSelectAnswer(selectedAnswer, values)
+      selected = restored.matched
+      custom = restored.unmatched
+    } else if (values.includes(selectedAnswer)) {
+      selected = [selectedAnswer]
+    } else {
+      custom = [selectedAnswer]
+    }
+  }
+  const lines = values.map((value) => `${selected.includes(value) ? '●' : '○'} ${value}`)
+  for (const text of custom) lines.push(`● ${text}`)
+  return [payload.Text, lines.join('\n')].filter(Boolean).join('\n\n')
+}
+
+function copySource(
+  message: Pick<AISessionMessageDTO, 'messageText' | 'messageType'>,
+  selectedAnswer?: string,
+): {
+  text: string
+  hasImages: boolean
+} {
+  if (message.messageType === AIAnswerType.Options) {
+    const payload = parseOptionsPayload(message.messageText)
+    if (payload) {
+      return { text: optionsCopyText(payload, selectedAnswer), hasImages: false }
+    }
+  }
+  if (message.messageType === AIAnswerType.File) {
+    const payload = parseFileMessagePayload(message.messageText)
+    if (payload) {
+      return {
+        text: payload.text,
+        hasImages: payload.files.some((f) => f.mimeType.startsWith('image/')),
+      }
+    }
+  }
+  return { text: message.messageText ?? '', hasImages: false }
 }
 
 export function useMessagePresentation() {
@@ -96,9 +148,18 @@ export function useMessagePresentation() {
     }
   }
 
-  async function handleCopy(messageId: string, text: string | null | undefined): Promise<void> {
-    if (!text) return
-    await copy(text)
+  async function handleCopy(message: CopyableMessage, selectedAnswer?: string): Promise<void> {
+    const { text, hasImages } = copySource(message, selectedAnswer)
+    if (!text && !hasImages) return
+
+    const messageId = message.messageID
+    const { parse } = useMarkdown()
+    try {
+      await copyMessageRich(messageId, text, parse)
+    } catch {
+      if (text) await copy(text)
+    }
+
     copiedMessageId.value = messageId
     setTimeout(() => {
       if (copiedMessageId.value === messageId) {

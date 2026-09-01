@@ -139,7 +139,8 @@ function sortAndFilterSessions(
         (session) =>
           session.sessionName.toLowerCase().includes(query) ||
           session.agentId.toString().includes(query) ||
-          session.members.some((email) => email.toLowerCase().includes(query)),
+          session.members.some((email) => email.toLowerCase().includes(query)) ||
+          session.memberDetails?.some((m) => m.name.toLowerCase().includes(query)),
       )
     : [...sessions]
 
@@ -180,6 +181,29 @@ function applySessionFilters(
 
     return true
   })
+}
+
+function checkUserHasPrimarySession(
+  userId: number,
+  currentEmail: string,
+  sessions: AISessionHeaderDTO[] | undefined,
+  allUsers: UserDTO[] | undefined,
+): boolean {
+  if (!sessions || !allUsers) return false
+  const user = allUsers.find((u) => u.id === userId)
+  if (!user || user.isVirtual) return false
+  return getPrimarySessionForUser(userId, currentEmail, sessions, allUsers) !== null
+}
+
+function resolveUserClickRoute(
+  userId: number,
+  currentEmail: string,
+  sessions: AISessionHeaderDTO[] | undefined,
+  allUsers: UserDTO[] | undefined,
+): string {
+  if (!sessions || !allUsers) return `/chats/new/${userId}`
+  const ps = getPrimarySessionForUser(userId, currentEmail, sessions, allUsers)
+  return ps ? `/chats/${ps.sessionId}` : `/chats/new/${userId}`
 }
 
 function applyDraftFilters(
@@ -239,11 +263,9 @@ export function useChatListData() {
   const filteredDraftSessions = computed(() =>
     applyDraftFilters(chatStore.draftMessages, filterContext.value),
   )
-
   const totalUnreadCount = computed(
     () => unreadCounts.value?.reduce((sum, entry) => sum + entry.unreadMessageCount, 0) ?? 0,
   )
-
   const getUnreadCount = (sessionId: string) =>
     getUnreadCountFromEntries(unreadCounts.value, sessionId)
   const getOtherMembers = (members: string[]) =>
@@ -253,21 +275,17 @@ export function useChatListData() {
 
   type SessionHeader = Parameters<typeof getSessionDisplayName>[0]
   type PrimaryCheckSession = Parameters<typeof checkIsPrimarySession>[0]
-
   const getDisplayName = (session: SessionHeader & { sessionName: string }) =>
     !sessions.value || !users.value
       ? session.sessionName
       : getSessionDisplayName(session, currentUserEmail.value, sessions.value, users.value)
-
   const isPrimarySessionCheck = (session: PrimaryCheckSession) =>
     !!(sessions.value && users.value && currentUserEmail.value) &&
     checkIsPrimarySession(session, sessions.value, users.value, currentUserEmail.value)
-
-  function handleUserClick(userId: number): string | null {
-    if (!sessions.value || !users.value) return `/chats/new/${userId}`
-    const ps = getPrimarySessionForUser(userId, currentUserEmail.value, sessions.value, users.value)
-    return ps ? `/chats/${ps.sessionId}` : `/chats/new/${userId}`
-  }
+  const userHasPrimarySession = (userId: number) =>
+    checkUserHasPrimarySession(userId, currentUserEmail.value, sessions.value, users.value)
+  const handleUserClick = (userId: number) =>
+    resolveUserClickRoute(userId, currentUserEmail.value, sessions.value, users.value)
 
   return {
     users,
@@ -289,6 +307,7 @@ export function useChatListData() {
     getDisplayName,
     isPrimarySessionCheck,
     handleUserClick,
+    userHasPrimarySession,
     clearDraftConversation: (draftKey: string) => chatStore.clearDraft(draftKey),
     formatRelativeDate,
     formatSessionDate,

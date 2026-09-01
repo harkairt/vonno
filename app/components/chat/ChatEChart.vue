@@ -1,5 +1,13 @@
 <template>
-  <div class="echart-container">
+  <div
+    ref="wrapperRef"
+    class="echart-container"
+  >
+    <ChartCopyButton
+      :container-ref="containerRef"
+      :hover-ref="wrapperRef"
+      :hidden="showLoading || !!error"
+    />
     <div
       v-if="showLoading"
       class="echart-loading"
@@ -31,6 +39,7 @@ import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useResizeObserver } from '@vueuse/core'
 import { useECharts, type EChartsInstance } from '~/composables/useECharts'
+import ChartCopyButton from '~/components/chat/ChartCopyButton.vue'
 import { useChatStore } from '~/stores/chat'
 import { hasActionableItems, isValidPrompt, type EChartsOption } from '@/lib/validation/echarts'
 
@@ -46,6 +55,7 @@ const { t } = useI18n()
 const colorMode = useColorMode()
 const { isLoaded, loadECharts, initChart, applyOption } = useECharts()
 
+const wrapperRef = ref<HTMLElement | null>(null)
 const containerRef = ref<HTMLElement | null>(null)
 const error = ref<string | null>(null)
 let instance: EChartsInstance | null = null
@@ -140,6 +150,7 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .echart-container {
+  position: relative;
   width: 100%;
   margin: 1rem 0;
 }
