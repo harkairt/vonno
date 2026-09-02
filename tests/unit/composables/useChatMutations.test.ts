@@ -74,6 +74,8 @@ vi.mock('@/app/stores/chat', () => ({
     onNewSessionConfirmed: vi.fn(),
     executeNewSessionCallback: vi.fn(),
     removeNewSessionCallback: vi.fn(),
+    setErrorResponse: vi.fn(),
+    clearErrorResponse: vi.fn(),
   }),
 }))
 

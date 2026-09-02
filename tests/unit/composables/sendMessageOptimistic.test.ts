@@ -87,6 +87,8 @@ function makeDeps(queryClient: QueryClient) {
       startAgentThinking: vi.fn(),
       stopAgentThinking: vi.fn(),
       executeNewSessionCallback: vi.fn(),
+      setErrorResponse: vi.fn(),
+      clearErrorResponse: vi.fn(),
     } as unknown as ReturnType<typeof import('@/app/stores/chat').useChatStore>,
     authStore: {
       user: { id: 1, email: ME, name: 'Test User' },

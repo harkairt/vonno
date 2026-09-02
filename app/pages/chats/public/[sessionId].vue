@@ -38,6 +38,12 @@
         :thinking-agents="thinkingAgents"
       />
 
+      <ErrorResponseNotice
+        :text="errorResponse"
+        :scroll-container="messagesContainer"
+        @dismiss="chatStore.clearErrorResponse(sessionId)"
+      />
+
       <div class="relative z-10 pointer-events-none">
         <div class="absolute bottom-2 left-0 right-0">
           <ScrollToBottomButton
@@ -89,6 +95,7 @@ import type { AiQuestionRequestDTO } from '@/types/api/schemas'
 import MessageInput from '@/app/components/chat/MessageInput.vue'
 import ChatMessages from '@/app/components/chat/ChatMessages.vue'
 import TypingIndicator from '@/app/components/chat/TypingIndicator.vue'
+import ErrorResponseNotice from '@/app/components/chat/ErrorResponseNotice.vue'
 import ScrollToBottomButton from '@/app/components/chat/ScrollToBottomButton.vue'
 
 const route = useRoute()
@@ -218,6 +225,7 @@ async function handleOptionSubmitted(answer: string) {
 
 const typingUsers = computed(() => chatStore.getTypingUsers(sessionId))
 const thinkingAgents = computed(() => chatStore.getThinkingAgents(sessionId))
+const errorResponse = computed(() => chatStore.getErrorResponse(sessionId))
 
 // Messages container ref for scrolling
 const messagesContainer = ref<HTMLElement | null>(null)

@@ -134,6 +134,9 @@
       "retry": "Retry",
       "discard": "Discard"
     },
+    "errorResponse": {
+      "dismiss": "Dismiss error"
+    },
     "focus": {
       "toggleSidebar": "Toggle focused messages",
       "focusMessage": "Focus message",

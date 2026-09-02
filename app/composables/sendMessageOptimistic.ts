@@ -76,6 +76,24 @@ function isEmptyResponse(message: AISessionMessageDTO): boolean {
   )
 }
 
+function isErrorResponse(message: AISessionMessageDTO): boolean {
+  return message.messageType === AIAnswerType.ErrorText
+}
+
+function shouldSkipCacheInsert(message: AISessionMessageDTO): boolean {
+  return isEmptyResponse(message) || isErrorResponse(message)
+}
+
+function captureErrorResponse(
+  chatStore: ReturnType<typeof useChatStore>,
+  sessionId: string,
+  message: AISessionMessageDTO,
+): void {
+  if (isErrorResponse(message)) {
+    chatStore.setErrorResponse(sessionId, message.messageText)
+  }
+}
+
 function getAgentFromCache(queryClient: QueryClient, agentId: number): UserDTO | undefined {
   const selectableUsers = queryClient.getQueryData<UserDTO[]>(userQueryKeys.selectable())
   const fromSelectable = selectableUsers?.find((user) => user.id === agentId)
@@ -171,6 +189,8 @@ export async function applyOptimisticSend(
 ): Promise<SendMessageMutateContext> {
   const { queryClient, chatStore, authStore } = deps
 
+  chatStore.clearErrorResponse(request.sessionId)
+
   const existingSession = queryClient.getQueryData<AISessionDTO>(
     chatQueryKeys.session(request.sessionId),
   )
@@ -243,9 +263,11 @@ export async function confirmSend(params: ConfirmSendParams): Promise<void> {
     chatStore.stopAgentThinking(request.sessionId, context.thinkingAgentName)
   }
 
+  captureErrorResponse(chatStore, request.sessionId, serverMessage)
+
   if (!context?.isNewSession) {
     queryClient.setQueryData<AISessionDTO>(chatQueryKeys.session(request.sessionId), (old) => {
-      if (!old || isEmptyResponse(serverMessage)) return old
+      if (!old || shouldSkipCacheInsert(serverMessage)) return old
       const messages = old.messages ?? []
       if (messages.some((message) => message.messageID === serverMessage.messageID)) return old
       return { ...old, messages: [...messages, serverMessage] }
@@ -292,14 +314,14 @@ export async function confirmSend(params: ConfirmSendParams): Promise<void> {
       sessionName: '',
       insertDate: userMessageTimestamp,
       modifiedAt: userMessageTimestamp,
-      messages: isEmptyResponse(serverMessage)
+      messages: shouldSkipCacheInsert(serverMessage)
         ? [syntheticUserMessage]
         : [syntheticUserMessage, serverMessage],
     }
 
     queryClient.setQueryData<AISessionDTO>(chatQueryKeys.session(request.sessionId), (old) => {
       if (old?.messages?.length) {
-        if (isEmptyResponse(serverMessage)) return old
+        if (shouldSkipCacheInsert(serverMessage)) return old
         if (old.messages.some((m) => m.messageID === serverMessage.messageID)) return old
         return { ...old, messages: [...old.messages, serverMessage] }
       }
