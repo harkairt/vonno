@@ -261,6 +261,12 @@
             :thinking-agents="thinkingAgents"
           />
 
+          <ErrorResponseNotice
+            :text="errorResponse"
+            :scroll-container="messagesContainer"
+            @dismiss="chatStore.clearErrorResponse(sessionId)"
+          />
+
           <div class="relative z-10 pointer-events-none">
             <div class="absolute bottom-2 left-0 right-0">
               <ScrollToBottomButton
@@ -370,6 +376,7 @@ import ChatErrorFallback from '@/app/components/chat/ChatErrorFallback.vue'
 import FileDropOverlay from '@/app/components/chat/FileDropOverlay.vue'
 import SessionMembers from '@/app/components/chat/SessionMembers.vue'
 import TypingIndicator from '@/app/components/chat/TypingIndicator.vue'
+import ErrorResponseNotice from '@/app/components/chat/ErrorResponseNotice.vue'
 import ScrollToBottomButton from '@/app/components/chat/ScrollToBottomButton.vue'
 import UserAvatar from '~/components/UserAvatar.vue'
 import { getInitials, getAvatarStyle, hasAvatar } from '@/app/utils/user'
@@ -571,6 +578,8 @@ const {
   pendingIds,
   failedIds,
 } = useChatMessages(sessionId, session)
+
+const errorResponse = computed(() => chatStore.getErrorResponse(sessionId))
 
 // Header title: server-assigned name, or the user's first message for a freshly
 // created session the server hasn't named yet (mirrors the optimistic sidebar entry).

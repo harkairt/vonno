@@ -134,6 +134,9 @@
       "retry": "Újraküldés",
       "discard": "Elvetés"
     },
+    "errorResponse": {
+      "dismiss": "Hibaüzenet elvetése"
+    },
     "focus": {
       "toggleSidebar": "Kiemelt üzenetek megjelenítése",
       "focusMessage": "Üzenet kiemelése",

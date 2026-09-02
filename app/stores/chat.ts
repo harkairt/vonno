@@ -203,6 +203,23 @@ function createAgentThinkingActions(agentThinkingCounts: Ref<Map<string, Map<str
   }
 }
 
+function createErrorResponseActions(errorResponses: Ref<Record<string, string>>) {
+  return {
+    setErrorResponse(sessionId: string, text: string | null | undefined) {
+      const trimmed = text?.trim()
+      if (!trimmed) return
+      errorResponses.value[sessionId] = trimmed
+    },
+    clearErrorResponse(sessionId: string) {
+      const { [sessionId]: _, ...rest } = errorResponses.value
+      errorResponses.value = rest
+    },
+    getErrorResponse(sessionId: string): string | undefined {
+      return errorResponses.value[sessionId] ?? undefined
+    },
+  }
+}
+
 // Extracted: new session callback helpers
 function createSessionCallbackActions(callbacks: Map<string, () => void>) {
   return {
@@ -234,6 +251,7 @@ export const useChatStore = defineStore(
     const failedMessages = ref<Record<string, FailedMessage[]>>({})
     const pendingMessages = ref<Record<string, PendingEntry[]>>({})
     const draftMessages = ref<Record<string, string>>({})
+    const errorResponses = ref<Record<string, string>>({})
     const skipNextEntranceAnimation = ref(false)
     // One-shot handoff flag, same lifecycle as skipNextEntranceAnimation: the new-chat
     // page sets it immediately before navigating to /chats/<id>, and that page consumes
@@ -264,6 +282,7 @@ export const useChatStore = defineStore(
     const failedMessageActions = createFailedMessageActions(failedMessages)
     const pendingMessageActions = createPendingMessageActions(pendingMessages)
     const draftActions = createDraftActions(draftMessages)
+    const errorResponseActions = createErrorResponseActions(errorResponses)
     const typingActions = createTypingActions(typingUsers)
     const agentThinkingActions = createAgentThinkingActions(agentThinkingCounts)
     const sessionCallbackActions = createSessionCallbackActions(newSessionCallbacks)
@@ -287,6 +306,7 @@ export const useChatStore = defineStore(
       failedMessages.value = {}
       pendingMessages.value = {}
       draftMessages.value = {}
+      errorResponses.value = {}
       skipNextEntranceAnimation.value = false
       nextSessionIsFreshlyCreated.value = false
       newSessionCallbacks.clear()
@@ -305,6 +325,7 @@ export const useChatStore = defineStore(
       ...failedMessageActions,
       ...pendingMessageActions,
       ...draftActions,
+      ...errorResponseActions,
       ...typingActions,
       ...agentThinkingActions,
       skipNextEntranceAnimation,
