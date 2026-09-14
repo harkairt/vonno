@@ -131,6 +131,7 @@ function getSessionPrimaryMemberInfo(
 function sortAndFilterSessions(
   sessions: AISessionHeaderDTO[] | undefined,
   query: string,
+  allUsers: UserDTO[] | undefined,
 ): AISessionHeaderDTO[] {
   if (!sessions) return []
 
@@ -140,6 +141,12 @@ function sortAndFilterSessions(
           session.sessionName.toLowerCase().includes(query) ||
           session.agentId.toString().includes(query) ||
           session.members.some((email) => email.toLowerCase().includes(query)) ||
+          session.members.some((email) =>
+            allUsers
+              ?.find((u) => u.email === email)
+              ?.name?.toLowerCase()
+              .includes(query),
+          ) ||
           session.memberDetails?.some((m) => m.name.toLowerCase().includes(query)),
       )
     : [...sessions]
@@ -154,7 +161,7 @@ function applySessionFilters(
   sessions: AISessionHeaderDTO[] | undefined,
   filters: ChatListFilterContext,
 ): AISessionHeaderDTO[] {
-  const result = sortAndFilterSessions(sessions, filters.query)
+  const result = sortAndFilterSessions(sessions, filters.query, filters.users)
   if (filters.participantType === 'all' && !filters.unreadOnly && !filters.favoritesOnly) {
     return result
   }

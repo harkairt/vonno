@@ -338,6 +338,34 @@ describe('useChatListData participant type filtering', () => {
     result.sessionSearchQuery.value = 'KSH'
     expect(result.filteredSessions.value.map((s) => s.sessionId)).toEqual(['ksh-chat'])
   })
+
+  it('matches sessions by member name from the users list when memberDetails is absent', async () => {
+    const originalUsers = usersRef.value
+    usersRef.value = [
+      ...originalUsers,
+      { id: 12, name: 'AI_Drégelyi Zoltán', email: 'ai_dregelyi@example.com', isVirtual: true },
+    ]
+    sessionsRef.value = [
+      makeSession({
+        sessionId: 'dregelyi-chat',
+        sessionName: 'magyarázd el az interakciós mátrixot',
+        members: ['me@example.com', 'ai_dregelyi@example.com'],
+      }),
+      makeSession({
+        sessionId: 'other-chat',
+        sessionName: 'Other Session',
+        members: ['me@example.com', 'bob@example.com'],
+      }),
+    ]
+
+    const { useChatListData } = await import('~/composables/useChatListData')
+    const result = useChatListData()
+
+    result.sessionSearchQuery.value = 'Dré'
+    expect(result.filteredSessions.value.map((s) => s.sessionId)).toEqual(['dregelyi-chat'])
+
+    usersRef.value = originalUsers
+  })
 })
 
 describe('useChatListData unread filtering', () => {
