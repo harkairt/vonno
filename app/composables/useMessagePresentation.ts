@@ -1,6 +1,10 @@
 import { computed, ref, type CSSProperties } from 'vue'
 import type { AISessionMessageDTO, OptionsMessagePayload } from '@/types/api/schemas'
-import { parseFileMessagePayload, parseOptionsPayload } from '@/types/api/schemas'
+import {
+  parseFileMessagePayload,
+  parseFormMessagePayload,
+  parseOptionsPayload,
+} from '@/types/api/schemas'
 import { AIAnswerType } from '@/types/enums'
 import { useAuthStore } from '@/app/stores/auth'
 import { restoreMultiSelectAnswer } from '@/app/utils/optionAnswer'
@@ -81,6 +85,12 @@ function copySource(
         text: payload.text,
         hasImages: payload.files.some((f) => f.mimeType.startsWith('image/')),
       }
+    }
+  }
+  if (message.messageType === AIAnswerType.Form) {
+    const payload = parseFormMessagePayload(message.messageText)
+    if (payload) {
+      return { text: payload.text, hasImages: false }
     }
   }
   return { text: message.messageText ?? '', hasImages: false }

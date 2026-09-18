@@ -13,7 +13,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { delay } from 'msw'
 import { screen, fireEvent, waitFor, within } from '@testing-library/vue'
-import { defineComponent, h, type Component } from 'vue'
+import { defineComponent, h, reactive, type Component } from 'vue'
 import { renderWithProviders } from '@/tests/utils/render'
 import { server, http } from '@/tests/msw/server'
 import { apiOk, apiError } from '@/tests/msw/http'
@@ -25,7 +25,14 @@ import { chatQueryKeys } from '@/app/composables/useChatQueries'
 import { useChatStore } from '@/app/stores/chat'
 import { useAuthStore } from '@/app/stores/auth'
 import { useSignalR } from '@/app/composables/useSignalR'
-import type { AISessionDTO } from '@/types/api/schemas'
+import { useFormsStore } from '@/app/stores/forms'
+import {
+  OPEN_FORM_INSTANCE_ID,
+  SUBMITTED_FORM_INSTANCE_ID,
+  openFormInstance,
+  sessionFormSummaries,
+} from '@/tests/msw/handlers/form'
+import type { AISessionDTO, SessionFormSummary } from '@/types/api/schemas'
 import ChatSessionPage from '@/app/pages/chats/[sessionId].vue'
 import ChatMessages from '@/app/components/chat/ChatMessages.vue'
 import signalrInitPlugin from '@/app/plugins/signalr-init.client'
@@ -38,9 +45,26 @@ vi.mock('@/app/composables/useChatAutoScroll', () => ({
   }),
 }))
 
+// The page imports this module directly (not the global from tests/setup.ts),
+// so viewport mode is driven through a module mock with a hoisted switch.
+const viewport = vi.hoisted(() => ({ mobile: false }))
+vi.mock('~/composables/useNavigationVisibility', async () => {
+  const { computed } = await import('vue')
+  return {
+    useNavigationVisibility: () => ({
+      isMobile: computed(() => viewport.mobile),
+      isActiveChat: computed(() => true),
+      showBottomTabBar: computed(() => false),
+      showRail: computed(() => !viewport.mobile),
+    }),
+  }
+})
+
 const ME = 'me@example.com'
 const OTHER = 'other@example.com'
 const SESSION_ID = 'session-1'
+// Deliberately not makeSession's agentId (1), which GetSessionById echoes back.
+const AGENT_ID = 77
 
 const GET_SESSION_BY_ID = '/api/AIWebAPI/GetSessionById'
 const SEND_TEXT = '/api/AIWebAPI/question/text'
@@ -60,6 +84,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  viewport.mobile = false
 })
 
 // Keep ChatMessages / TypingIndicator / MessageInput real; stub the markdown/
@@ -87,6 +112,16 @@ const stubs = {
   },
   UIcon: { template: '<i />' },
   USkeleton: { template: '<div />' },
+  UBadge: { props: ['label'], template: '<span>{{ label }}</span>' },
+  USlideover: {
+    props: ['open', 'title'],
+    template:
+      '<div v-if="open" data-testid="forms-slideover">{{ title }}<slot name="body" /></div>',
+  },
+  UCollapsible: {
+    props: ['open'],
+    template: '<div><slot /><slot v-if="open" name="content" /></div>',
+  },
   UserAvatar: { template: '<div />' },
 }
 
@@ -131,6 +166,18 @@ function serveVirtualAgentSession(messageText: string) {
         ...makeSession({ sessionId: SESSION_ID, members: [ME, OTHER] }),
         messages: [makeRawMessage({ messageID: 'm1', messageText, senderUserCode: OTHER })],
       }),
+    ),
+  )
+}
+
+/**
+ * The OTHER member as a virtual agent: what makes the form calls address a real
+ * agent instead of staying disabled.
+ */
+function serveAgentMember() {
+  server.use(
+    http.get('/api/user/get-selectable-users', () =>
+      apiOk([makeUser({ id: AGENT_ID, email: OTHER, isVirtual: true }), makeUser({ email: ME })]),
     ),
   )
 }
@@ -372,5 +419,226 @@ describe('chats/[sessionId] page', () => {
 
     chatStore.removeTypingUser(SESSION_ID, 'Alice')
     await waitFor(() => expect(indicator.textContent).not.toContain('chat.typing.single'))
+  })
+})
+
+describe('chats/[sessionId] page — forms header toggle', () => {
+  const GET_SESSION_FORMS = '/api/Form/GetSessionForms'
+  const closedForms = sessionFormSummaries.filter((form) => form.status !== 'Open')
+
+  function serveForms(forms: SessionFormSummary[], selectedInstanceId: string | null) {
+    server.use(http.post(GET_SESSION_FORMS, () => apiOk({ forms, selectedInstanceId })))
+  }
+
+  async function renderSessionPage() {
+    seedAuthStorage({ user: makeUser({ email: ME }) })
+    installFakeSignalR()
+    serveAgentMember()
+    serveSession(() => [])
+    renderPage()
+    return screen.findByTestId('forms-sidebar-toggle')
+  }
+
+  it('shows the open-form count as a badge and the marker dot for a listed open form', async () => {
+    serveForms(sessionFormSummaries, OPEN_FORM_INSTANCE_ID)
+    const toggle = await renderSessionPage()
+
+    expect(await within(toggle).findByText('1')).toBeTruthy()
+    expect(within(toggle).getByRole('img', { name: 'chat.forms.agentSelected' })).toBeTruthy()
+  })
+
+  it('addresses the virtual member of the session, not the agentId of the session DTO', async () => {
+    const bodies: { agentId: number }[] = []
+    server.use(
+      http.post(GET_SESSION_FORMS, async ({ request }) => {
+        bodies.push((await request.json()) as { agentId: number })
+        return apiOk({ forms: sessionFormSummaries, selectedInstanceId: null })
+      }),
+    )
+    await renderSessionPage()
+
+    await waitFor(() => expect(bodies).toHaveLength(1))
+    expect(bodies[0]!.agentId).toBe(AGENT_ID)
+  })
+
+  it('hides the badge at zero open forms and the dot when the marker is not an open form', async () => {
+    serveForms(closedForms, SUBMITTED_FORM_INSTANCE_ID)
+    const toggle = await renderSessionPage()
+
+    await fireEvent.click(toggle)
+    expect(await screen.findAllByTestId('form-panel-item')).toHaveLength(closedForms.length)
+    expect(within(toggle).queryByText(/\d/)).toBeNull()
+    expect(within(toggle).queryByRole('img', { name: 'chat.forms.agentSelected' })).toBeNull()
+  })
+
+  it('desktop: opens the forms sidebar and closes the sibling sidebars, and vice versa', async () => {
+    const toggle = await renderSessionPage()
+
+    await fireEvent.click(screen.getByTestId('focus-sidebar-toggle'))
+    expect(screen.getByText('chat.focus.sidebarTitle')).toBeTruthy()
+
+    await fireEvent.click(toggle)
+    expect(await screen.findByTestId('forms-sidebar')).toBeTruthy()
+    expect(screen.queryByText('chat.focus.sidebarTitle')).toBeNull()
+    expect(screen.queryByTestId('forms-slideover')).toBeNull()
+
+    await fireEvent.click(screen.getByTestId('focus-sidebar-toggle'))
+    expect(screen.queryByTestId('forms-sidebar')).toBeNull()
+    expect(screen.getByText('chat.focus.sidebarTitle')).toBeTruthy()
+
+    await fireEvent.click(toggle)
+    await screen.findByTestId('forms-sidebar')
+    await fireEvent.click(screen.getByTestId('file-preview-sidebar-toggle'))
+    expect(screen.queryByTestId('forms-sidebar')).toBeNull()
+  })
+
+  it('mobile: is the only sidebar toggle and opens the slideover', async () => {
+    viewport.mobile = true
+    const toggle = await renderSessionPage()
+
+    expect(screen.queryByTestId('focus-sidebar-toggle')).toBeNull()
+    expect(screen.queryByTestId('file-preview-sidebar-toggle')).toBeNull()
+
+    await fireEvent.click(toggle)
+    expect(await screen.findByTestId('forms-slideover')).toBeTruthy()
+    expect(screen.queryByTestId('forms-sidebar')).toBeNull()
+  })
+})
+
+describe('chats/[sessionId] page — open a form from its card', () => {
+  const GET_SESSION_FORMS = '/api/Form/GetSessionForms'
+  const formFence = (id: string) => '```form\n' + JSON.stringify({ instanceId: id }) + '\n```'
+
+  async function renderPageWithCard(instanceId: string) {
+    seedAuthStorage({ user: makeUser({ email: ME }) })
+    installFakeSignalR()
+    serveAgentMember()
+    server.use(
+      http.post(GET_SESSION_FORMS, () =>
+        apiOk({ forms: sessionFormSummaries, selectedInstanceId: OPEN_FORM_INSTANCE_ID }),
+      ),
+    )
+    serveSession(() => [
+      makeRawMessage({
+        messageID: 'm-form',
+        messageText: `Please fill this in.\n\n${formFence(instanceId)}`,
+        senderUserCode: OTHER,
+      }),
+    ])
+    renderPage()
+    return screen.findByRole('button', { name: /chat\.forms\.open$/ })
+  }
+
+  function panelItem(instanceId: string) {
+    return document.querySelector<HTMLElement>(
+      `[data-testid="form-panel-item"][data-instance-id="${instanceId}"]`,
+    )
+  }
+
+  it('desktop: opens the forms sidebar, closes the siblings and focuses the form', async () => {
+    const card = await renderPageWithCard(OPEN_FORM_INSTANCE_ID)
+    await fireEvent.click(screen.getByTestId('focus-sidebar-toggle'))
+    expect(screen.getByText('chat.focus.sidebarTitle')).toBeTruthy()
+
+    await fireEvent.click(card)
+
+    expect(await screen.findByTestId('forms-sidebar')).toBeTruthy()
+    expect(screen.queryByText('chat.focus.sidebarTitle')).toBeNull()
+    expect(screen.queryByTestId('forms-slideover')).toBeNull()
+
+    const formsStore = useFormsStore()
+    await waitFor(() => expect(formsStore.lastFocusedId).toBe(OPEN_FORM_INSTANCE_ID))
+    expect(formsStore.sessions[SESSION_ID]?.expandedIds).toEqual([OPEN_FORM_INSTANCE_ID])
+    await waitFor(() =>
+      expect(
+        within(panelItem(OPEN_FORM_INSTANCE_ID)!)
+          .getAllByRole('button')[0]!
+          .getAttribute('aria-expanded'),
+      ).toBe('true'),
+    )
+  })
+
+  it('desktop: a closed form card expands that form read-only and collapses the open one', async () => {
+    const card = await renderPageWithCard(SUBMITTED_FORM_INSTANCE_ID)
+
+    await fireEvent.click(card)
+
+    await screen.findByTestId('forms-sidebar')
+    const formsStore = useFormsStore()
+    await waitFor(() =>
+      expect(formsStore.sessions[SESSION_ID]?.expandedIds).toEqual([SUBMITTED_FORM_INSTANCE_ID]),
+    )
+    expect(
+      await within(panelItem(SUBMITTED_FORM_INSTANCE_ID)!).findByText('chat.forms.closedNotice'),
+    ).toBeTruthy()
+  })
+
+  it('mobile: opens the slideover and focuses the form', async () => {
+    viewport.mobile = true
+    const card = await renderPageWithCard(OPEN_FORM_INSTANCE_ID)
+
+    await fireEvent.click(card)
+
+    expect(await screen.findByTestId('forms-slideover')).toBeTruthy()
+    expect(screen.queryByTestId('forms-sidebar')).toBeNull()
+    const formsStore = useFormsStore()
+    await waitFor(() => expect(formsStore.lastFocusedId).toBe(OPEN_FORM_INSTANCE_ID))
+    expect(formsStore.sessions[SESSION_ID]?.expandedIds).toEqual([OPEN_FORM_INSTANCE_ID])
+  })
+})
+
+describe('chats/[sessionId] page — flush dirty forms on leave', () => {
+  const SAVE_FORM_INST = '/api/Form/SaveFormInst'
+
+  async function renderPageWithDirtyDraft() {
+    seedAuthStorage({ user: makeUser({ email: ME }) })
+    installFakeSignalR()
+    serveAgentMember()
+    serveSession(() => [])
+    const saveBodies: { agentId: number }[] = []
+    server.use(
+      http.post(SAVE_FORM_INST, async ({ request }) => {
+        const body = (await request.json()) as { agentId: number }
+        saveBodies.push({ agentId: body.agentId })
+        return apiOk(openFormInstance)
+      }),
+    )
+    const rendered = renderPage()
+    await screen.findByTestId('forms-sidebar-toggle')
+    await waitFor(() =>
+      expect(rendered.queryClient.getQueryData(chatQueryKeys.session(SESSION_ID))).toBeTruthy(),
+    )
+    const formsStore = useFormsStore()
+    formsStore.createDraft(SESSION_ID, OPEN_FORM_INSTANCE_ID, openFormInstance.data!)
+    formsStore.updateDraftData(SESSION_ID, OPEN_FORM_INSTANCE_ID, { company: { name: 'edited' } })
+    return { ...rendered, saveBodies, formsStore }
+  }
+
+  it('saves the dirty drafts of the old session when the route moves to another session', async () => {
+    const route = reactive({
+      params: { sessionId: SESSION_ID },
+      query: {},
+      path: `/chats/${SESSION_ID}`,
+      fullPath: `/chats/${SESSION_ID}`,
+      name: 'chats-sessionId',
+    })
+    vi.mocked(useRoute).mockReturnValue(route as never)
+    const { saveBodies, formsStore } = await renderPageWithDirtyDraft()
+
+    route.params.sessionId = 'session-2'
+
+    await waitFor(() => expect(saveBodies).toHaveLength(1))
+    expect(saveBodies[0]!.agentId).toBe(AGENT_ID)
+    await waitFor(() => expect(formsStore.dirtyInstanceIds(SESSION_ID)).toEqual([]))
+  })
+
+  it('saves the dirty drafts when the page unmounts', async () => {
+    const { saveBodies, formsStore, unmount } = await renderPageWithDirtyDraft()
+
+    unmount()
+
+    await waitFor(() => expect(saveBodies).toHaveLength(1))
+    expect(saveBodies[0]!.agentId).toBe(AGENT_ID)
+    await waitFor(() => expect(formsStore.dirtyInstanceIds(SESSION_ID)).toEqual([]))
   })
 })

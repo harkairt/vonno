@@ -5,8 +5,8 @@
 
 import { err, ok, type Result } from 'neverthrow'
 import type { AxiosError } from 'axios'
-import type { AppError } from './types'
 import {
+  AppError,
   ValidationError,
   UnauthorizedError,
   ForbiddenError,
@@ -21,6 +21,7 @@ import {
   isAppError,
 } from './types'
 import { createLogger } from '@/lib/utils/logger'
+import { ErrorCode } from '@/types/enums'
 
 const logger = createLogger('ErrorNormalize')
 
@@ -166,6 +167,12 @@ function normalizeResponseData(
   url?: string,
   requestId?: string,
 ): AppError {
+  // Backend's ApiResponse<T> envelope on failure: { data: null, error: { code, message } }
+  const envelope = extractApiErrorEnvelope(data)
+  if (envelope) {
+    return createEnvelopeError(status, envelope, url, requestId)
+  }
+
   // Backend returns validation errors in .errors format (ASP.NET style)
   if (status === 400 && data && typeof data === 'object' && 'errors' in data) {
     const validationError = extractValidationErrors(data as { errors: unknown })
@@ -189,6 +196,29 @@ function normalizeResponseData(
 
   // Handle specific HTTP status codes with default messages
   return handleStatusCode(status, url, requestId)
+}
+
+function extractApiErrorEnvelope(data: unknown): { code: string; message: string } | null {
+  if (!data || typeof data !== 'object' || !('error' in data)) return null
+  const envelopeError = (data as { error: unknown }).error
+  if (!envelopeError || typeof envelopeError !== 'object') return null
+  const { code, message } = envelopeError as { code?: unknown; message?: unknown }
+  if (typeof code !== 'string' || typeof message !== 'string') return null
+  return { code, message }
+}
+
+function createEnvelopeError(
+  status: number,
+  envelope: { code: string; message: string },
+  url?: string,
+  requestId?: string,
+): AppError {
+  const { code, message } = envelope
+  const knownCodes = Object.values(ErrorCode) as string[]
+  if (knownCodes.includes(code)) {
+    return new AppError(code as ErrorCode, message, status, { endpoint: url, requestId })
+  }
+  return createApiError(status, message, url, requestId)
 }
 
 /**

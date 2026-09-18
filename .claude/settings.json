@@ -1,4 +1,5 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "hooks": {
     "Stop": [
       {
@@ -19,6 +20,7 @@
     "security-guidance@claude-plugins-official": true,
     "feature-dev@claude-plugins-official": true,
     "interface-design@interface-design": true,
-    "typescript-lsp@claude-plugins-official": true
+    "typescript-lsp@claude-plugins-official": true,
+    "pr-review-toolkit@claude-plugins-official": true
   }
 }

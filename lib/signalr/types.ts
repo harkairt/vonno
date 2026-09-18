@@ -70,6 +70,20 @@ export interface SignalREventRegistry {
    */
   SendStopTypingInfo: [name: string, email: string, sessionId: string]
 
+  /**
+   * Fired when a form instance's data or status changed on the server
+   * @param sessionId - UUID of the session the form belongs to
+   * @param instanceId - UUID of the form instance that changed
+   */
+  FormUpdated: [sessionId: string, instanceId: string]
+
+  /**
+   * Fired when the agent moves the session's form marker
+   * @param sessionId - UUID of the session
+   * @param instanceId - UUID of the newly marked form instance, or null when the marker is cleared
+   */
+  FormSelected: [sessionId: string, instanceId: string | null]
+
   // ========================================
   // Connection Lifecycle Events (Internal)
   // ========================================

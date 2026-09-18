@@ -206,7 +206,8 @@
 
   /* Fókuszgyűrű lágyítása */
   input:focus-visible,
-  textarea:focus-visible {
+  textarea:focus-visible,
+  button[role="combobox"]:focus {
     @apply ring-1!;
   }
   .composer-pill textarea:focus-visible,
