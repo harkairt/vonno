@@ -1,0 +1,29 @@
+info:
+  name: GetSessionForms
+  type: http
+  seq: 11
+
+http:
+  method: POST
+  url: "{{url}}/api/Form/GetSessionForms"
+  headers:
+    - name: Accept
+      value: application/json
+    - name: Authorization
+      value: Bearer {{accessToken}}
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "sessionId": "{{sessionId}}",
+        "agentId": 1
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

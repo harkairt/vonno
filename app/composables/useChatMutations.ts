@@ -3,7 +3,11 @@ import { chatService } from '@/lib/api/services/ChatService'
 import { useChatStore } from '@/app/stores/chat'
 import { useAuthStore } from '@/app/stores/auth'
 import { useSignalR } from '@/app/composables/useSignalR'
+import { useFormDraftFlush } from '@/app/composables/useFormDraftPersistence'
+import { resolveSessionAgentId } from '@/app/utils/sessionAgents'
 import { chatQueryKeys } from './useChatQueries'
+import { formQueryKeys } from './useFormQueries'
+import { userQueryKeys } from './useUsers'
 import { applyOptimisticSend, confirmSend, rollbackSend } from './sendMessageOptimistic'
 import type {
   AISessionMessageDTO,
@@ -18,6 +22,7 @@ import type {
   GetUnreadMessagesDTO,
   StartPublicChatrequestDTO,
   AIPublicChatStartDTO,
+  UserDTO,
 } from '@/types/api/schemas'
 import type { StagedAttachment } from '@/types/fileAttachment'
 import type { MutationSuccess } from '@/types/api/base'
@@ -46,9 +51,22 @@ export function useSendMessage() {
   const chatStore = useChatStore()
   const authStore = useAuthStore()
   const deps = { queryClient, chatStore, authStore }
+  const flushSessionFormDrafts = useFormDraftFlush()
+  const toast = useToast()
+  const { t } = useI18n()
 
   return useMutation({
     mutationFn: async (vars: SendMessageVariables): Promise<AISessionMessageDTO> => {
+      const { sessionId, members } = vars.request
+      // The message's agentId is who it's addressed to, not who owns the session's
+      // forms — a form the flush must not lose track of when the two differ.
+      const selectableUsers = queryClient.getQueryData<UserDTO[]>(userQueryKeys.selectable())
+      const sessionAgentId = resolveSessionAgentId(members, selectableUsers)
+      const statuses = await flushSessionFormDrafts(sessionId, sessionAgentId)
+      if (statuses.includes('error')) {
+        toast.add({ title: t('chat.forms.flushFailed'), color: 'error' })
+      }
+
       const result = await chatService.sendQuestion(vars.request)
       if (result.isErr()) throw result.error
       return result.value
@@ -58,6 +76,7 @@ export function useSendMessage() {
 
     onSuccess: async (serverMessage, vars, context) => {
       await confirmSend({ ...deps, serverMessage, request: vars.request, context })
+      void queryClient.invalidateQueries({ queryKey: formQueryKeys.all(vars.request.sessionId) })
       notifyMembersViaSignalR(vars.request, authStore)
     },
 

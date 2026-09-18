@@ -15,6 +15,7 @@ export enum AIAnswerType {
   ErrorText = 7,
   ServerTask = 8,
   Empty = 9,
+  Form = 19,
 }
 
 // AI Question types (from lines 67-71 in dto.md)

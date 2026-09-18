@@ -7,6 +7,8 @@ import { configService } from '@/lib/api/services/ConfigService'
 import { globalErrorTracker } from '@/lib/errors/utils'
 import { SignalRService } from '@/lib/signalr/SignalRService'
 import { setStorageMode } from '@/app/stores/auth'
+import { useFormsStore } from '@/app/stores/forms'
+import { resetFormDraftSaves } from '@/app/composables/useFormDraftPersistence'
 import { resetWelcomeMessageTracking } from '@/app/composables/useChatQueries'
 import { resetChatListFilters } from '@/app/composables/useChatListFilters'
 import { setQueryClient } from '@/lib/queryClientSingleton'
@@ -42,6 +44,8 @@ export function resetAllState(): void {
   safe(() => sessionStorage.clear())
   safe(() => resetWelcomeMessageTracking())
   safe(() => resetChatListFilters())
+  safe(() => useFormsStore().reset())
+  safe(() => resetFormDraftSaves())
   safe(() => focusManager.setFocused(undefined))
   // Reset to online (true), NOT undefined: isOnline() returns the raw value, and
   // a falsy value pauses all TanStack mutations, deadlocking mutateAsync in tests.

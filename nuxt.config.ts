@@ -327,8 +327,11 @@ export default defineNuxtConfig({
         'Referrer-Policy': 'strict-origin-when-cross-origin',
         'Permissions-Policy': 'camera=(), microphone=(self), geolocation=()',
         'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+        // 'unsafe-eval': ajv (JSON Forms' validator) compiles schemas via `new Function` at
+        // runtime. Removable only by precompiling schemas ahead of time, which the backend's
+        // dynamic per-instance schemas rule out for now.
         'Content-Security-Policy':
-          "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https: http:; connect-src 'self' wss: ws: https://api.iconify.design; worker-src 'self' blob:; frame-src 'self' blob:; object-src 'self' blob:;",
+          "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https: http:; connect-src 'self' wss: ws: https://api.iconify.design; worker-src 'self' blob:; frame-src 'self' blob:; object-src 'self' blob:;",
       },
     },
     '/api/**': {

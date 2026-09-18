@@ -8,6 +8,7 @@ import { simpleGraph } from '@/app/dev/fixtures/cytoscape'
 type MarkdownContentProps = InstanceType<typeof MarkdownContent>['$props']
 
 const fence = (lang: string, body: string) => '```' + lang + '\n' + body + '\n```'
+const formFence = (instanceId: string) => fence('form', JSON.stringify({ instanceId }))
 
 const prose = `# Heading 1
 
@@ -341,5 +342,34 @@ export const markdownScenarios: Scenario<MarkdownContentProps>[] = [
     id: 'md-video-rejected',
     title: 'Rejected ```video block (external URL) → stays a code block',
     props: { content: fence('video', JSON.stringify({ src: 'https://example.com/video.mp4' })) },
+  },
+  {
+    id: 'md-form-text',
+    title: 'Text + ```form fence → markdown above a form card',
+    props: {
+      content: `Please fill in the partner details below.\n\n${formFence('form-inst-open')}`,
+    },
+  },
+  {
+    id: 'md-form-only',
+    title: 'Fence-only ```form message → just the card',
+    props: { content: formFence('form-inst-submitted') },
+  },
+  {
+    id: 'md-form-two',
+    title: 'Two ```form fences → one row with two cards',
+    props: {
+      content: `${formFence('form-inst-open')}\n\n${formFence('form-inst-cancelled')}`,
+    },
+  },
+  {
+    id: 'md-form-unknown',
+    title: 'Unknown form id → faint "deleted" state',
+    props: { content: `This one no longer exists.\n\n${formFence('form-inst-deleted')}` },
+  },
+  {
+    id: 'md-form-invalid',
+    title: 'Invalid ```form body → "form reference unavailable" placeholder, no card',
+    props: { content: 'Only this sentence should remain.\n\n' + fence('form', '{ not json') },
   },
 ]

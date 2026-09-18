@@ -151,6 +151,47 @@
           </div>
         </UButton>
 
+        <!-- Forms panel toggle (desktop sidebar, mobile slideover) -->
+        <UButton
+          v-if="session"
+          variant="ghost"
+          color="neutral"
+          square
+          size="sm"
+          :aria-label="t('chat.forms.toggleSidebar')"
+          data-testid="forms-sidebar-toggle"
+          @click="handleFormsToggle"
+        >
+          <div class="relative flex items-center justify-center">
+            <UIcon
+              :name="
+                formsPanelOpen
+                  ? 'i-heroicons-clipboard-document-list-solid'
+                  : 'i-heroicons-clipboard-document-list'
+              "
+              class="size-5"
+            />
+            <span
+              v-if="openFormsCount > 0"
+              class="absolute text-[9px] font-bold leading-none"
+              :class="
+                formsPanelOpen
+                  ? 'text-[hsl(var(--background))]'
+                  : 'text-[hsl(var(--muted-foreground))]'
+              "
+              style="padding-bottom: 2px"
+            >
+              {{ openFormsCount }}
+            </span>
+            <span
+              v-if="formsMarkerVisible"
+              role="img"
+              :aria-label="t('chat.forms.agentSelected')"
+              class="absolute -right-0.5 -top-0.5 size-1.5 rounded-full bg-[hsl(var(--brand-soft))] ring-1 ring-[hsl(var(--primary)/0.4)]"
+            />
+          </div>
+        </UButton>
+
         <!-- Session Members Avatar Stack (hidden for primary sessions) -->
         <SessionMembers
           v-if="session && session.members.length > 2 && selectableUsers && !isPrimarySession"
@@ -231,7 +272,7 @@
                     key="messages"
                     :messages="messages"
                     :welcome-message="trimmedWelcomeMessage"
-                    :agent-id="session?.agentId ?? virtualAgentFromSession?.agentId"
+                    :agent-id="sessionAgentId"
                     :agent-name="virtualAgentFromSession?.agentName"
                     :welcome-message-date="virtualAgentFromSession?.firstMessageDate"
                     :member-count="session?.members?.length ?? 2"
@@ -245,6 +286,7 @@
                     @retry-message="handleRetryMessage"
                     @discard-message="handleDiscardMessage"
                     @preview-file="handlePreviewFile"
+                    @open-form="handleOpenForm"
                   />
                 </Transition>
               </div>
@@ -329,7 +371,23 @@
             @open-file-detail="filePreviewOpenDetail"
             @scroll-to-message="scrollToMessage"
           />
+
+          <FormsSidebar
+            v-if="activeSidebar === 'forms'"
+            ref="formsSidebarRef"
+            :session-id="sessionId"
+            :agent-id="sessionAgentId"
+            :content-width="sidebarWidth - 4"
+            @close="formsSidebarOpen = false"
+          />
         </div>
+
+        <FormsSlideover
+          v-if="isMobile"
+          v-model:open="formsSlideoverOpen"
+          :session-id="sessionId"
+          :agent-id="sessionAgentId"
+        />
       </div>
 
       <!-- Session Not Found -->
@@ -369,6 +427,7 @@ import { getUserFriendlyMessage } from '@/app/utils/error'
 import { AIQuestionType } from '@/types/enums'
 import type { AiQuestionRequestDTO, ReceivedFile } from '@/types/api/schemas'
 import { resolveWelcomeAgent } from '@/app/utils/welcomeAgent'
+import { resolveSessionAgentId, resolveSessionAgents } from '@/app/utils/sessionAgents'
 import { useChatAutoScroll } from '@/app/composables/useChatAutoScroll'
 import MessageInput from '@/app/components/chat/MessageInput.vue'
 import ChatMessagesSkeleton from '@/app/components/chat/ChatMessagesSkeleton.vue'
@@ -385,6 +444,12 @@ import { useFilePreview } from '@/app/composables/useFilePreview'
 import { usePanelResize } from '~/composables/usePanelResize'
 import FocusedMessagesSidebar from '@/app/components/chat/FocusedMessagesSidebar.vue'
 import FilePreviewSidebar from '@/app/components/chat/FilePreviewSidebar.vue'
+import type { ComponentPublicInstance } from 'vue'
+import FormsSidebar from '@/app/components/forms/FormsSidebar.vue'
+import FormsSlideover from '@/app/components/forms/FormsSlideover.vue'
+import { useSessionForms } from '@/app/composables/useFormQueries'
+import { useFormsStore } from '@/app/stores/forms'
+import { useFormDraftFlush } from '@/app/composables/useFormDraftPersistence'
 import { createLogger } from '@/lib/utils/logger'
 
 const logger = createLogger('ChatSession')
@@ -399,6 +464,9 @@ const chatStore = useChatStore()
 
 const { focusedIds, toggleFocus: rawToggleFocus, clearAll } = useMessageFocus(sessionId)
 const focusSidebarOpen = ref(false)
+const formsSidebarOpen = ref(false)
+const formsSlideoverOpen = ref(false)
+const formsSidebarRef = ref<ComponentPublicInstance | null>(null)
 
 const {
   previewedFiles,
@@ -422,9 +490,10 @@ const {
   direction: 'right',
 })
 
-const activeSidebar = computed((): 'focus' | 'files' | null => {
+const activeSidebar = computed((): 'focus' | 'files' | 'forms' | null => {
   if (focusSidebarOpen.value) return 'focus'
   if (filePreviewOpen.value) return 'files'
+  if (formsSidebarOpen.value) return 'forms'
   return null
 })
 
@@ -433,6 +502,7 @@ function toggleFocusSidebar(): void {
     focusSidebarOpen.value = false
   } else {
     filePreviewOpen.value = false
+    formsSidebarOpen.value = false
     focusSidebarOpen.value = true
   }
 }
@@ -442,8 +512,40 @@ function toggleFilePreviewSidebar(): void {
     toggleFilePreviewOpen()
   } else {
     focusSidebarOpen.value = false
+    formsSidebarOpen.value = false
     toggleFilePreviewOpen()
   }
+}
+
+function toggleFormsSidebar(): void {
+  if (formsSidebarOpen.value) {
+    formsSidebarOpen.value = false
+  } else {
+    focusSidebarOpen.value = false
+    filePreviewOpen.value = false
+    formsSidebarOpen.value = true
+  }
+}
+
+function handleFormsToggle(): void {
+  if (isMobile.value) {
+    formsSlideoverOpen.value = true
+  } else {
+    toggleFormsSidebar()
+  }
+}
+
+async function handleOpenForm(instanceId: string): Promise<void> {
+  if (isMobile.value) {
+    formsSlideoverOpen.value = true
+  } else {
+    focusSidebarOpen.value = false
+    filePreviewOpen.value = false
+    formsSidebarOpen.value = true
+  }
+  // The panel must be mounted before the focus so the item can scroll and highlight.
+  await nextTick()
+  formsStore.focusForm(sessionId, instanceId)
 }
 
 function toggleFocus(messageId: string): void {
@@ -451,12 +553,14 @@ function toggleFocus(messageId: string): void {
   rawToggleFocus(messageId)
   if (wasEmpty && focusedIds.value.length > 0 && !focusSidebarOpen.value) {
     filePreviewOpen.value = false
+    formsSidebarOpen.value = false
     focusSidebarOpen.value = true
   }
 }
 
 function handlePreviewFile(file: ReceivedFile, messageId: string, messageDate: string): void {
   focusSidebarOpen.value = false
+  formsSidebarOpen.value = false
   previewFile(file, messageId, messageDate)
 }
 
@@ -464,11 +568,27 @@ function scrollToMessage(messageId: string): void {
   scrollToElement(`[data-testid="message-${messageId}"]`)
 }
 
-onKeyStroke('Escape', () => {
+onKeyStroke('Escape', (event) => {
   if (filePreviewOpen.value) {
     closeFilePreview()
   }
+  if (formsSidebarOpen.value && !isEscapeOwnedByFormsContent(event)) {
+    formsSidebarOpen.value = false
+  }
 })
+
+// A modal traps focus, so an Escape fired inside a dialog belongs to it; a
+// focused field inside the panel keeps Escape for its own widget.
+function isEscapeOwnedByFormsContent(event: KeyboardEvent): boolean {
+  const target = event.target instanceof HTMLElement ? event.target : null
+  if (!target) return false
+  if (target.closest('[role="dialog"]')) return true
+  const panelEl = formsSidebarRef.value?.$el as HTMLElement | undefined
+  return (
+    !!panelEl?.contains(target) &&
+    target.matches('input, textarea, select, [contenteditable="true"]')
+  )
+}
 
 // Consume one-shot flag: skip entrance animation when arriving from /chats/new/*
 chatStore.setActiveSession(sessionId)
@@ -525,6 +645,42 @@ const {
 // Fetch all sessions for primary session detection
 const { data: allSessions } = useChatSessions()
 
+// Fetch selectable users to determine target agentId
+const { data: selectableUsers, isLoading: isSelectableUsersLoading } = useSelectableUsers()
+
+const sessionAgentId = computed(() =>
+  resolveSessionAgentId(session.value?.members, selectableUsers.value),
+)
+
+// Mounted here at page setup, not by the toggle: header badge/marker need it before the panel opens.
+const formsStore = useFormsStore()
+const { data: sessionForms } = useSessionForms(sessionId, sessionAgentId)
+const openFormsCount = computed(
+  () => sessionForms.value?.forms.filter((form) => form.status === 'Open').length ?? 0,
+)
+const formsMarkerVisible = computed(() => {
+  const selected = formsStore.sessions[sessionId]?.selectedInstanceId
+  return (
+    !!selected &&
+    !!sessionForms.value?.forms.some(
+      (form) => form.instanceId === selected && form.status === 'Open',
+    )
+  )
+})
+const formsPanelOpen = computed(() => formsSidebarOpen.value || formsSlideoverOpen.value)
+
+const flushSessionFormDrafts = useFormDraftFlush()
+const flushSessionForms = () => flushSessionFormDrafts(sessionId, sessionAgentId.value)
+watch(
+  () => route.params.sessionId,
+  (next) => {
+    if (next !== sessionId) void flushSessionForms()
+  },
+)
+onBeforeUnmount(() => {
+  void flushSessionForms()
+})
+
 const { mutate: markMessagesRead } = useMarkMessagesRead()
 
 const lastSeenMessageCount = ref(0)
@@ -556,9 +712,6 @@ watch(
   },
   { immediate: true },
 )
-
-// Fetch selectable users to determine target agentId
-const { data: selectableUsers, isLoading: isSelectableUsersLoading } = useSelectableUsers()
 
 // Primary session detection
 const currentUserEmail = computed(() => authStore.user?.email)
@@ -609,16 +762,9 @@ const {
 })
 
 // Compute selectable target agents from session members (only virtual agents)
-const selectableTargetAgents = computed(() => {
-  if (!session.value?.members || !selectableUsers.value) {
-    return []
-  }
-
-  // Filter to only virtual agents who are session members
-  return selectableUsers.value.filter(
-    (user) => session.value.members.includes(user.email) && user.isVirtual,
-  )
-})
+const selectableTargetAgents = computed(() =>
+  resolveSessionAgents(session.value?.members, selectableUsers.value),
+)
 
 // Selected target agent ID (undefined = no selection, falls back to current user)
 const selectedTargetAgentId = ref<number | undefined>(undefined)

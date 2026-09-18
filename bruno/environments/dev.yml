@@ -1,7 +1,7 @@
 name: dev
 variables:
   - name: accessToken
-    value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0NiIsImVtYWlsIjoiaGFya2FpLnRhbWFzQGlubm9zbWFydGtmdC5odSIsInVuaXF1ZV9uYW1lIjoiVGFtYXMiLCJuYW1laWQiOiJoYXJrYWkudGFtYXNAaW5ub3NtYXJ0a2Z0Lmh1IiwibmJmIjoxNzg3MDM5Nzk0LCJleHAiOjE3ODcwNDAzOTQsImlhdCI6MTc4NzAzOTc5NCwiaXNzIjoiSW5ub3NtYXJ0IEtmdC4iLCJhdWQiOiJJbm5vQ2hhdFVzZXJzIn0.PcPxq4A-g4xl84JAcfTMmHXpTSsZeddEwaqqGoJroKE
+    value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0NiIsImVtYWlsIjoiaGFya2FpLnRhbWFzQGlubm9zbWFydGtmdC5odSIsInVuaXF1ZV9uYW1lIjoiVGFtYXMiLCJuYW1laWQiOiJoYXJrYWkudGFtYXNAaW5ub3NtYXJ0a2Z0Lmh1IiwibmJmIjoxNzg5NzE4MjExLCJleHAiOjE3ODk3MTg4MTEsImlhdCI6MTc4OTcxODIxMSwiaXNzIjoiSW5ub3NtYXJ0IEtmdC4iLCJhdWQiOiJJbm5vQ2hhdFVzZXJzIn0.ALO0hIb0GE5wv-Uk8ivYnj5uIb8BJ26jVij7WNzqRMg
   - name: url
     value: http://172.22.4.22:8082
   - name: email
@@ -9,4 +9,7 @@ variables:
   - name: passwordHash
     value: 3c9909afec25354d551dae21590bb26e38d53f2173b8d3dc3eee4c047e7ab1c1eb8b85103e3be7ba613b31bb5c9c36214dc9f14a42fd7a2fdb84856bca5c44c2
   - name: sessionId
-    value: b6f737e9-9f67-4731-ae49-71cd7ed032ed
+    value: f916e84b-1d17-40ae-a8f4-fb391015cc53
+  - name: instanceId
+    value: ffe4fbf9-6167-45ea-adb3-917a35445242
+    description: Form instance id — take one from a GetSessionForms response

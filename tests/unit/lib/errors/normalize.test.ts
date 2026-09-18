@@ -305,6 +305,62 @@ describe('normalizeApiError — 400 validation detection', () => {
   })
 })
 
+describe('normalizeApiError — ApiResponse envelope ({ data, error })', () => {
+  it('surfaces the backend code and message for a 400 envelope', () => {
+    const result = normalizeApiError(
+      axiosWithResponse(400, {
+        data: null,
+        success: null,
+        warning: null,
+        error: { code: 'VALIDATION_ERROR', message: 'Form not found' },
+      }),
+    )
+    expect(result.code).toBe(ErrorCode.VALIDATION_ERROR)
+    expect(result.statusCode).toBe(400)
+    expect(result.message).toBe('Form not found')
+  })
+
+  it('keeps the backend message when the code has no ErrorCode equivalent, falling back to the status-based code', () => {
+    const result = normalizeApiError(
+      axiosWithResponse(400, {
+        data: null,
+        error: { code: 'FORM_LOCKED', message: 'Locked for editing' },
+      }),
+    )
+    expect(result.code).toBe(ErrorCode.VALIDATION_ERROR)
+    expect(result.message).toBe('Locked for editing')
+  })
+
+  it('surfaces the backend message for a 500 envelope too', () => {
+    const result = normalizeApiError(
+      axiosWithResponse(500, { data: null, error: { code: 'SERVER_ERROR', message: 'db down' } }),
+    )
+    expect(result.code).toBe(ErrorCode.SERVER_ERROR)
+    expect(result.message).toBe('db down')
+  })
+
+  it('does not misfire on an envelope-shaped body whose error is null', () => {
+    const result = normalizeApiError(axiosWithResponse(400, { data: null, error: null }))
+    expect(result.message).toBe('Bad request')
+  })
+
+  it('does not misfire on an envelope whose error object is missing code/message', () => {
+    const result = normalizeApiError(axiosWithResponse(400, { data: null, error: {} }))
+    expect(result.message).toBe('Bad request')
+  })
+
+  it('regression guard: ASP.NET .errors bodies are unaffected by the envelope branch', () => {
+    const result = normalizeApiError(axiosWithResponse(400, { errors: { email: ['is required'] } }))
+    expect(result).toBeInstanceOf(ValidationError)
+  })
+
+  it('regression guard: top-level data.message bodies are unaffected by the envelope branch', () => {
+    const result = normalizeApiError(axiosWithResponse(403, { message: 'Nope' }))
+    expect(result.message).toBe('Nope')
+    expect(result.code).toBe(ErrorCode.FORBIDDEN)
+  })
+})
+
 // ---------------------------------------------------------------------------
 // Status-code switch (handleStatusCode, L213–239). Assert the AppError SUBTYPE
 // per status: a removed `case` falls through to the default (a generic

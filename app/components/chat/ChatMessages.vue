@@ -55,10 +55,12 @@
                 !props.pendingIds.has(message.messageID) && !props.failedIds.has(message.messageID)
               "
               :class="{ 'opacity-70': props.failedIds.has(message.messageID) }"
+              :agent-id="props.agentId"
               @option-submitted="(answer) => emit('optionSubmitted', answer)"
               @preview-file="
                 (file, messageId, messageDate) => emit('previewFile', file, messageId, messageDate)
               "
+              @open-form="(instanceId) => emit('openForm', instanceId)"
             >
               <template #header>
                 <div
@@ -242,6 +244,7 @@ const emit = defineEmits<{
   retryMessage: [messageId: string]
   discardMessage: [messageId: string]
   previewFile: [file: ReceivedFile, messageId: string, messageDate: string]
+  openForm: [instanceId: string]
 }>()
 
 const authStore = useAuthStore()

@@ -28,6 +28,7 @@ const AI_ANSWER_TYPE_VALUES = [
   'errorText',
   'serverTask',
   'empty',
+  'form',
 ] as const
 
 const aiAnswerTypeMap: Record<(typeof AI_ANSWER_TYPE_VALUES)[number], AIAnswerType> = {
@@ -41,6 +42,7 @@ const aiAnswerTypeMap: Record<(typeof AI_ANSWER_TYPE_VALUES)[number], AIAnswerTy
   errorText: AIAnswerType.ErrorText,
   serverTask: AIAnswerType.ServerTask,
   empty: AIAnswerType.Empty,
+  form: AIAnswerType.Form,
 }
 
 // AIQuestionType: Backend sends lowercase strings
@@ -242,6 +244,15 @@ export const FileMessagePayloadSchema = z.object({
 })
 export type FileMessagePayload = z.infer<typeof FileMessagePayloadSchema>
 
+export const FormInstanceIdSchema = z.string().min(1)
+
+export const FormMessagePayloadSchema = z.object({
+  text: z.string().default(''),
+  formName: z.string().nullable().default(null),
+  instanceId: FormInstanceIdSchema,
+})
+export type FormMessagePayload = z.infer<typeof FormMessagePayloadSchema>
+
 export function parseOptionsPayload(
   messageText: string | null | undefined,
 ): OptionsMessagePayload | null {
@@ -271,6 +282,25 @@ export function parseFileMessagePayload(
     }
     const result = FileMessagePayloadSchema.safeParse(parsed)
     return result.success ? result.data : null
+  } catch {
+    return null
+  }
+}
+
+export function parseFormMessagePayload(
+  messageText: string | null | undefined,
+): FormMessagePayload | null {
+  if (!messageText) return null
+  try {
+    let parsed: unknown = messageText
+    for (let i = 0; i < 5 && typeof parsed === 'string'; i++) {
+      parsed = JSON.parse(parsed)
+    }
+    const result = FormMessagePayloadSchema.safeParse(parsed)
+    if (!result.success) {
+      return null
+    }
+    return result.data
   } catch {
     return null
   }
@@ -441,6 +471,57 @@ export const StartPublicChatrequestDTOSchema = z.object({
   agentId: z.number(),
 })
 
+export const FormStatusSchema = z.enum(['Open', 'Submitted', 'Cancelled'])
+export const SaveFormStatusSchema = FormStatusSchema.exclude(['Open'])
+
+export const SessionFormSummarySchema = z
+  .object({
+    instanceId: FormInstanceIdSchema,
+    formId: z.number().nullable(),
+    formName: z.string().nullable(),
+    status: FormStatusSchema,
+  })
+  .refine((form) => form.formId !== null || form.formName === null, {
+    message: 'formName must be null when formId is null',
+    path: ['formName'],
+  })
+
+export const SessionFormsResponseSchema = z.object({
+  forms: z.array(SessionFormSummarySchema),
+  selectedInstanceId: z.string().nullable(),
+})
+
+// schema is a JSON Forms document validated by the library, not here. uischema stays
+// nullable/optional and is passed through as-is: JSON Forms only auto-generates a
+// layout when it is absent (undefined), so folding null into {} would break that.
+export const FormInstanceSchema = z
+  .object({
+    instanceId: FormInstanceIdSchema,
+    formId: z.number().nullable(),
+    sessionId: z.string(),
+    schema: z.record(z.string(), z.unknown()),
+    uischema: z
+      .record(z.string(), z.unknown())
+      .nullable()
+      .optional()
+      .transform((val) => val ?? undefined),
+    data: z.record(z.string(), z.unknown()).nullable().optional(),
+    status: FormStatusSchema,
+    // Present on every real response; the frontend does not read them.
+    formInstId: z.number().optional(),
+    agentName: z.string().optional(),
+    insertdate: z.string().optional(),
+    insertUser: z.string().optional(),
+    modDate: z.string().nullable().optional(),
+    modUser: z.string().nullable().optional(),
+  })
+  .loose()
+
+export const DeleteFormResponseSchema = z.object({
+  instanceId: FormInstanceIdSchema,
+  deleted: z.literal(true),
+})
+
 // ============================================================================
 // LOGGING SCHEMAS
 // ============================================================================
@@ -578,6 +659,30 @@ export type GetSessionUnreadMessagesRequestDTO = z.infer<
 >
 export type StartPublicChatrequestDTO = z.infer<typeof StartPublicChatrequestDTOSchema>
 export type AIPublicChatStartDTO = z.infer<typeof AIPublicChatStartDTOSchema>
+export type FormStatus = z.infer<typeof FormStatusSchema>
+export type SaveFormStatus = z.infer<typeof SaveFormStatusSchema>
+export type SessionFormSummary = z.infer<typeof SessionFormSummarySchema>
+export type SessionFormsResponse = z.infer<typeof SessionFormsResponseSchema>
+export type FormInstance = z.infer<typeof FormInstanceSchema>
+export type DeleteFormResponse = z.infer<typeof DeleteFormResponseSchema>
+
+export const FormSessionRequestDTOSchema = z.object({
+  agentId: z.number(),
+  sessionId: z.string(),
+})
+export type FormSessionRequestDTO = z.infer<typeof FormSessionRequestDTOSchema>
+
+export const FormInstanceRequestDTOSchema = FormSessionRequestDTOSchema.extend({
+  instanceId: FormInstanceIdSchema,
+})
+export type FormInstanceRequestDTO = z.infer<typeof FormInstanceRequestDTOSchema>
+
+export const SaveFormRequestDTOSchema = FormInstanceRequestDTOSchema.extend({
+  data: z.record(z.string(), z.unknown()),
+  status: SaveFormStatusSchema.optional(),
+  lastEditedField: z.string().optional(),
+})
+export type SaveFormRequestDTO = z.infer<typeof SaveFormRequestDTOSchema>
 
 /**
  * Validates if an API response indicates mutation success

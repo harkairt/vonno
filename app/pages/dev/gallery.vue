@@ -67,6 +67,7 @@
           <div class="flex-1" />
           <ChatMessages
             :messages="gallerySession.messages ?? []"
+            :agent-id="gallerySession.agentId"
             :member-count="gallerySession.members.length"
             :active-options-message-id="ACTIVE_OPTIONS_MESSAGE_ID"
             @option-submitted="record"

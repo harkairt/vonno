@@ -273,6 +273,18 @@ const fixtureGroups: FixtureGroup[] = [
     description: 'static, isolated Mermaid diagrams and rejected interactive input',
     fixtures: markdownFixturesFor('md-mermaid', 'md-mermaid-gantt', 'md-mermaid-rejected'),
   },
+  {
+    fenceType: 'form',
+    description:
+      'form cards rendered from ```form fences, including unknown ids and invalid bodies',
+    fixtures: markdownFixturesFor(
+      'md-form-text',
+      'md-form-only',
+      'md-form-two',
+      'md-form-unknown',
+      'md-form-invalid',
+    ),
+  },
 ]
 
 const fixtureMessages = fixtureGroups
@@ -353,12 +365,49 @@ const fileMessages = [
   ),
 ]
 
+const formEnvelope = (text: string, formName: string | null, instanceId: string): string =>
+  JSON.stringify({ text, formName, instanceId })
+
+const formMessages = [
+  agentMessage(
+    'intro-form-message',
+    at(0, 11, 40),
+    '## form message type\n\nNow I am showing form messages carrying the JSON envelope.',
+  ),
+  agentMessage(
+    'fixture-form-message-text',
+    at(0, 11, 41),
+    formEnvelope('Please fill in the partner details below.', 'Partner rögzítés', 'form-inst-open'),
+    AIAnswerType.Form,
+  ),
+  agentMessage(
+    'fixture-form-message-no-text',
+    at(0, 11, 42),
+    formEnvelope('', 'Ajánlatkérés', 'form-inst-submitted'),
+    AIAnswerType.Form,
+  ),
+  agentMessage(
+    'fixture-form-message-ad-hoc',
+    at(0, 11, 43),
+    formEnvelope('An ad hoc form with no template.', null, 'form-inst-cancelled'),
+    AIAnswerType.Form,
+  ),
+  agentMessage(
+    'fixture-form-message-deleted',
+    at(0, 11, 44),
+    formEnvelope('This one no longer exists.', 'Partner rögzítés', 'form-inst-deleted'),
+    AIAnswerType.Form,
+  ),
+  agentMessage('fixture-form-message-invalid', at(0, 11, 45), '{ not json', AIAnswerType.Form),
+]
+
 export const threadMessages: AISessionMessageDTO[] = [
   ...conversationMessages,
   ...fixtureMessages,
   ...optionMessages,
   activeOptionMessage,
   ...fileMessages,
+  ...formMessages,
 ]
 
 export const gallerySession: AISessionDTO = {

@@ -11,6 +11,9 @@ import { makeUser } from '@/tests/utils/factories'
 import { createTestQueryClient } from '@/tests/utils/render'
 import { useFakeTimersSafe, advance, useRealTimers } from '@/tests/utils/timers'
 import { chatQueryKeys } from '@/app/composables/useChatQueries'
+import { formQueryKeys } from '@/app/composables/useFormQueries'
+import { useFormsStore } from '@/app/stores/forms'
+import { sessionFormsResponse, OPEN_FORM_INSTANCE_ID } from '@/tests/msw/handlers/form'
 import { useAuthStore } from '@/app/stores/auth'
 import { useChatStore } from '@/app/stores/chat'
 import { useSignalR } from '@/app/composables/useSignalR'
@@ -20,6 +23,7 @@ beforeEach(() => {
   vi.stubGlobal('useAuthStore', useAuthStore)
   vi.stubGlobal('useSignalR', useSignalR)
   vi.stubGlobal('useChatStore', useChatStore)
+  vi.stubGlobal('useFormsStore', useFormsStore)
 })
 
 afterEach(() => {
@@ -27,10 +31,14 @@ afterEach(() => {
   useRealTimers()
 })
 
-function runPlugin(queryClient = createTestQueryClient()) {
-  return signalrInitPlugin({ $queryClient: queryClient } as unknown as Parameters<
-    typeof signalrInitPlugin
-  >[0])
+function runPlugin(
+  queryClient = createTestQueryClient(),
+  onUnmount: (cleanup: () => void) => void = vi.fn(),
+) {
+  return signalrInitPlugin({
+    $queryClient: queryClient,
+    vueApp: { onUnmount },
+  } as unknown as Parameters<typeof signalrInitPlugin>[0])
 }
 
 describe('signalr-init plugin', () => {
@@ -210,6 +218,27 @@ describe('signalr-init plugin', () => {
     expect(sessionInvalidations).toHaveLength(1)
   })
 
+  it('unregisters event listeners when the app instance is disposed', async () => {
+    seedAuthStorage({ accessToken: 'seeded-access-token' })
+    const fake = installFakeSignalR()
+    useFakeTimersSafe()
+    const queryClient = createTestQueryClient()
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries')
+    let cleanup: (() => void) | undefined
+
+    await runPlugin(queryClient, (registeredCleanup) => {
+      cleanup = registeredCleanup
+    })
+    await advance(500)
+    expect(cleanup).toBeTypeOf('function')
+
+    invalidateSpy.mockClear()
+    cleanup?.()
+    fake.emitFromServer('FormUpdated', 'sess-1', 'form-1')
+
+    expect(invalidateSpy).not.toHaveBeenCalled()
+  })
+
   it('zeroes unread cache when the user is viewing the session that received a message', async () => {
     seedAuthStorage({ accessToken: 'seeded-access-token' })
     const fake = installFakeSignalR()
@@ -260,5 +289,139 @@ describe('signalr-init plugin', () => {
       chatQueryKeys.unread(),
     )
     expect(unread).toEqual([{ sessionId: 'sess-1', unreadMessageCount: 3 }])
+  })
+
+  describe('forms events', () => {
+    async function connected() {
+      seedAuthStorage({ accessToken: 'seeded-access-token' })
+      const fake = installFakeSignalR()
+      useFakeTimersSafe()
+      const queryClient = createTestQueryClient()
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries')
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      await runPlugin(queryClient)
+      await advance(500)
+      return { fake, queryClient, invalidateSpy, warnSpy }
+    }
+
+    const invalidationsOf = (spy: ReturnType<typeof vi.spyOn>, key: readonly unknown[]) =>
+      spy.mock.calls.filter(
+        (call) =>
+          JSON.stringify((call[0] as { queryKey: unknown }).queryKey) === JSON.stringify(key),
+      )
+
+    it('ReceiveMessage also invalidates the forms list of the session', async () => {
+      const { fake, invalidateSpy } = await connected()
+
+      fake.emitFromServer('ReceiveMessage', 'sess-1', 5)
+
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: chatQueryKeys.session('sess-1') })
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: chatQueryKeys.unread(), exact: true })
+      expect(invalidateSpy).toHaveBeenCalledWith({
+        queryKey: chatQueryKeys.sessions(),
+        exact: true,
+      })
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: formQueryKeys.list('sess-1') })
+    })
+
+    it('FormUpdated invalidates the instance and the list', async () => {
+      const { fake, invalidateSpy } = await connected()
+
+      fake.emitFromServer('FormUpdated', 'sess-1', 'inst-1')
+
+      expect(invalidateSpy).toHaveBeenCalledWith({
+        queryKey: formQueryKeys.instance('sess-1', 'inst-1'),
+      })
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: formQueryKeys.list('sess-1') })
+    })
+
+    it.each([
+      ['non-string sessionId', [42, 'inst-1']],
+      ['empty sessionId', ['', 'inst-1']],
+      ['non-string instanceId', ['sess-1', 7]],
+      ['empty instanceId', ['sess-1', '']],
+      ['null instanceId', ['sess-1', null]],
+    ])('FormUpdated with %s warns and returns', async (_label, args) => {
+      const { fake, invalidateSpy, warnSpy } = await connected()
+
+      fake.emitFromServer('FormUpdated', ...args)
+
+      expect(invalidateSpy).not.toHaveBeenCalled()
+      expect(warnSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it('FormSelected sets the marker without touching expandedIds or the scroll request', async () => {
+      const { fake, queryClient, invalidateSpy } = await connected()
+      queryClient.setQueryData(formQueryKeys.list('sess-1'), sessionFormsResponse)
+      const store = useFormsStore()
+      store.toggleExpanded('sess-1', 'other')
+      const focusSeqBefore = store.lastFocusSeq
+
+      fake.emitFromServer('FormSelected', 'sess-1', OPEN_FORM_INSTANCE_ID)
+
+      expect(store.sessions['sess-1']?.selectedInstanceId).toBe(OPEN_FORM_INSTANCE_ID)
+      expect(store.sessions['sess-1']?.expandedIds).toEqual(['other'])
+      expect(store.lastFocusSeq).toBe(focusSeqBefore)
+      expect(invalidateSpy).not.toHaveBeenCalled()
+    })
+
+    it('FormSelected(null) clears the marker', async () => {
+      const { fake, invalidateSpy } = await connected()
+      const store = useFormsStore()
+      store.setSelected('sess-1', OPEN_FORM_INSTANCE_ID)
+
+      fake.emitFromServer('FormSelected', 'sess-1', null)
+
+      expect(store.sessions['sess-1']?.selectedInstanceId).toBeNull()
+      expect(invalidateSpy).not.toHaveBeenCalled()
+    })
+
+    it('FormSelected for an id missing from the cached list invalidates the list once', async () => {
+      const { fake, queryClient, invalidateSpy } = await connected()
+      queryClient.setQueryData(formQueryKeys.list('sess-1'), sessionFormsResponse)
+
+      fake.emitFromServer('FormSelected', 'sess-1', 'brand-new')
+
+      expect(useFormsStore().sessions['sess-1']?.selectedInstanceId).toBe('brand-new')
+      expect(invalidationsOf(invalidateSpy, formQueryKeys.list('sess-1'))).toHaveLength(1)
+    })
+
+    it('FormSelected with no cached list invalidates the list once', async () => {
+      const { fake, invalidateSpy } = await connected()
+
+      fake.emitFromServer('FormSelected', 'sess-1', 'inst-1')
+
+      expect(invalidationsOf(invalidateSpy, formQueryKeys.list('sess-1'))).toHaveLength(1)
+    })
+
+    it.each([
+      ['non-string sessionId', [42, 'inst-1']],
+      ['empty sessionId', ['', 'inst-1']],
+      ['non-string instanceId', ['sess-1', 7]],
+      ['empty instanceId', ['sess-1', '']],
+    ])('FormSelected with %s warns and returns', async (_label, args) => {
+      const { fake, invalidateSpy, warnSpy } = await connected()
+
+      fake.emitFromServer('FormSelected', ...args)
+
+      expect(invalidateSpy).not.toHaveBeenCalled()
+      expect(warnSpy).toHaveBeenCalledTimes(1)
+      expect(useFormsStore().sessions['sess-1']).toBeUndefined()
+    })
+
+    it('registers the form listeners only once (dedupe guard)', async () => {
+      const { fake, invalidateSpy } = await connected()
+
+      fake.setState('reconnecting')
+      await nextTick()
+      fake.setState('connected')
+      await nextTick()
+
+      fake.emitFromServer('FormUpdated', 'sess-1', 'inst-1')
+
+      expect(
+        invalidationsOf(invalidateSpy, formQueryKeys.instance('sess-1', 'inst-1')),
+      ).toHaveLength(1)
+    })
   })
 })
